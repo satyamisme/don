@@ -55,6 +55,7 @@ default_values = {'AUTO_DELETE_MESSAGE_DURATION': 30,
                   'HARDSUB_FONT_NAME': 'TEAM MOVIES',
                   'HARDSUB_FONT_SIZE': '',
                   'DISABLE_MULTI_VIDTOOLS': '',
+                  'LEECH_VIDEO_TOOLS': False,
                   'IMAGE_ARIA': 'https://graph.org/file/24e3bbaa805d49823eddd.png',
                   'IMAGE_AUTH': 'https://graph.org/file/e6bfb75ad099e7d3664e0.png',
                   'IMAGE_BOLD': 'https://graph.org/file/d81b39cf4bf75b15c536b.png',
@@ -222,6 +223,7 @@ async def load_config():
     HARDSUB_FONT_NAME = environ.get('HARDSUB_FONT_NAME', 'TEAM MOVIES')
     DISABLE_VIDTOOLS = environ.get('DISABLE_VIDTOOLS', 'compress convert watermark')
     DISABLE_MULTI_VIDTOOLS = environ.get('DISABLE_MULTI_VIDTOOLS', 'compress rmstream extract trim watermark convert')
+    LEECH_VIDEO_TOOLS = environ.get('LEECH_VIDEO_TOOLS', 'False').lower() == 'true'
     START_MESSAGE = environ.get('START_MESSAGE', '')
     STATUS_UPDATE_INTERVAL = int(environ.get('STATUS_UPDATE_INTERVAL', 5))
     if len(task_dict) != 0 and (st := Intervals['status']):
@@ -510,6 +512,7 @@ async def load_config():
                         'VIDTOOLS_FAST_MODE': VIDTOOLS_FAST_MODE,
                         'DISABLE_VIDTOOLS': DISABLE_VIDTOOLS,
                         'DISABLE_MULTI_VIDTOOLS': DISABLE_MULTI_VIDTOOLS,
+                        'LEECH_VIDEO_TOOLS': LEECH_VIDEO_TOOLS,
                         'ENABLE_STREAM_LINK': ENABLE_STREAM_LINK,
                         'STREAM_BASE_URL': STREAM_BASE_URL,
                         'STREAM_PORT': STREAM_PORT,
