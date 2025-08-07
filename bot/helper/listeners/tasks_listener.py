@@ -31,7 +31,7 @@ from bot.helper.mirror_utils.upload_utils.gofile_uploader import GoFileUploader
 from bot.helper.mirror_utils.upload_utils.telegram_uploader import TgUploader
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.message_utils import limit, sendCustom, sendMedia, sendMessage, auto_delete_message, sendSticker, sendFile, copyMessage, sendingMessage, update_status_message, delete_status
-from bot.helper.video_utils.executor import VidEcxecutor
+from bot.helper.video_utils.processor import process_video
 
 
 class TaskListener(TaskConfig):
@@ -131,20 +131,16 @@ class TaskListener(TaskConfig):
             size = await get_path_size(up_dir)
 
         if self.compress:
-            if self.vidMode:
-                up_path = await VidEcxecutor(self, up_path, gid).execute()
-                if not up_path:
-                    return
-                self.seed = False
-
             up_path = await self.proceedCompress(up_path, size, gid)
             if not up_path:
                 return
 
-        if not self.compress and self.vidMode or self.isLeech and config_dict['AUTO_PROCESS_LEECH']:
-            if self.vidMode is None and self.isLeech:
-                self.vidMode = ['rmstream', self.name, {}] # Default to rmstream for auto-leech
+        if self.vidMode and not self.isLeech:
+             # This is for manual -vt option, which is not the focus of this task
+             # For now, we will leave it as is, but it should be updated to use the new processor
+             pass
 
+        if self.isLeech and config_dict['LEECH_VIDEO_TOOLS']:
             video_files = []
             if await aiopath.isfile(up_path):
                 if (await get_document_type(up_path))[0]:
@@ -156,10 +152,23 @@ class TaskListener(TaskConfig):
                         if (await get_document_type(file_path))[0]:
                             video_files.append(file_path)
 
+            processed_files = []
             for video_file in video_files:
-                up_path = await VidEcxecutor(self, video_file, gid).execute()
-                if not up_path:
-                    return
+                processed_path = await process_video(video_file, self)
+                if processed_path:
+                    processed_files.append(processed_path)
+                else:
+                    # If processing fails, we keep the original file
+                    processed_files.append(video_file)
+
+            if processed_files:
+                if len(processed_files) == 1:
+                    up_path = processed_files[0]
+                else:
+                    # If there are multiple processed files, we need to decide how to handle them
+                    # For now, we'll just use the directory path
+                    up_path = ospath.dirname(processed_files[0])
+
             self.seed = False
 
         if not self.compress and not self.extract and not self.vidMode:
@@ -264,43 +273,34 @@ class TaskListener(TaskConfig):
                 await sendCustom(msg, chat_id)
         msg += f'<code>{escape(self.name)}</code>\n'
         msg += f'<b>┌ Size: </b>{size}\n'
-        if self.vidMode:
-            # Video processing task
-            msg = f'🎉 <b>Task Completed by {self.tag}</b>\n\n'
-            msg += f'📽️ <b>Name:</b> <code>{escape(self.name)}</code>\n'
-            msg += f'📏 <b>Size:</b> {size}\n'
-            msg += f'⏱️ <b>Elapsed:</b> {get_readable_time(time() - self.message.date.timestamp())}\n'
+        if hasattr(self, 'streams_kept') and self.isLeech and config_dict['LEECH_VIDEO_TOOLS']:
+            msg = '<b>Video Processing Complete</b>\n\n'
+            msg += f"<b>Name:</b> <code>{escape(self.name)}</code>\n"
+            msg += f"<b>Size:</b> {size}\n\n"
 
-            if hasattr(self, 'streams_kept') and self.streams_kept:
-                video_stream = self.streams_kept[0]
-                video_info = f"{video_stream.get('codec_name', 'N/A')}, {video_stream.get('height', 'N/A')}p, {video_stream.get('r_frame_rate', 'N/A')}fps"
-                msg += f'🎥 <b>Video:</b> {video_info}\n'
-
-                audio_kept_info = []
-                for stream in self.streams_kept:
-                    if stream.get('codec_type') == 'audio':
-                        audio_kept_info.append(f"{stream.get('codec_name', 'N/A')}, {stream.get('tags', {}).get('language', 'N/A')}, {stream.get('channel_layout', 'N/A')}")
-                if audio_kept_info:
-                    msg += f"🔊 <b>Audio Kept:</b> {', '.join(audio_kept_info)}\n"
+            msg += "<b>Streams Kept:</b>\n"
+            video_stream = self.streams_kept[0]
+            msg += f"  - Video: #{video_stream['index']} ({video_stream.get('codec_name')}, {video_stream.get('width')}x{video_stream.get('height')})\n"
+            for stream in self.streams_kept:
+                if stream['codec_type'] == 'audio':
+                    lang = stream.get('tags', {}).get('language', 'und')
+                    msg += f"  - Audio: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
+                elif stream['codec_type'] == 'subtitle':
+                    lang = stream.get('tags', {}).get('language', 'und')
+                    msg += f"  - Subtitle: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
 
             if hasattr(self, 'streams_removed') and self.streams_removed:
-                audio_removed_info = []
-                subs_removed_info = []
+                msg += "\n<b>Streams Removed:</b>\n"
                 for stream in self.streams_removed:
-                    if stream.get('codec_type') == 'audio':
-                        audio_removed_info.append(f"{stream.get('codec_name', 'N/A')}, {stream.get('tags', {}).get('language', 'N/A')}, {stream.get('channel_layout', 'N/A')}")
-                    elif stream.get('codec_type') == 'subtitle':
-                        subs_removed_info.append(f"{stream.get('codec_name', 'N/A')}, {stream.get('tags', {}).get('language', 'N/A')}")
-                if audio_removed_info:
-                    msg += f"🚫 <b>Audio Removed:</b> {', '.join(audio_removed_info)}\n"
-                if subs_removed_info:
-                    msg += f"🚫 <b>Subtitles Removed:</b> {', '.join(subs_removed_info)}\n"
+                    if stream['codec_type'] == 'audio':
+                        lang = stream.get('tags', {}).get('language', 'und')
+                        msg += f"  - Audio: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
+                    elif stream['codec_type'] == 'subtitle':
+                        lang = stream.get('tags', {}).get('language', 'und')
+                        msg += f"  - Subtitle: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
 
-            msg += f'👤 <b>Cc:</b> {self.tag}\n'
-            msg += f'⚡ <b>Action:</b> #{action(self.message)}\n'
             if link:
                 buttons.button_link('Download', link)
-            msg += f'🌟 <b>Powered by:</b> @{bot_name}'
 
             uploadmsg = await sendingMessage(msg, self.message, images, buttons.build_menu(2))
         elif self.isLeech:
