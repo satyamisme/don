@@ -25,6 +25,37 @@ class ExtraSelect:
         self.is_cancel = False
         self.extension: list[str] = [None, None, 'mkv']
         self.status = ''
+        self.executor.streams_kept = []
+        self.executor.streams_removed = []
+
+    async def auto_select(self, streams):
+        from bot import config_dict
+        preferred_lang = [lang.strip() for lang in config_dict.get('PREFERRED_LANGUAGES', '').split(',') if lang]
+        excluded_lang = [lang.strip() for lang in config_dict.get('EXCLUDED_LANGUAGES', '').split(',') if lang]
+
+        if not self.executor.data:
+            self.executor.data = {'stream': {}}
+
+        streams_to_remove = []
+
+        for stream in streams:
+            indexmap, codec_type, lang = stream.get('index'), stream.get('codec_type'), stream.get('tags', {}).get('language', 'und')
+            if codec_type not in ['video', 'audio', 'subtitle']:
+                continue
+
+            self.executor.data['stream'][indexmap] = {'map': indexmap, 'type': codec_type, 'lang': lang}
+
+            if preferred_lang and lang in preferred_lang:
+                self.executor.streams_kept.append(stream)
+                continue
+            if excluded_lang and lang in excluded_lang:
+                streams_to_remove.append(indexmap)
+                self.executor.streams_removed.append(stream)
+            else:
+                self.executor.streams_kept.append(stream)
+
+        self.executor.data['sdata'] = streams_to_remove
+        self.event.set()
 
     @new_thread
     async def _event_handler(self):

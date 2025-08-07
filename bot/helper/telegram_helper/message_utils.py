@@ -11,7 +11,7 @@ from bot.helper.ext_utils.bot_utils import setInterval, sync_to_async
 from bot.helper.ext_utils.db_handler import DbManager
 from bot.helper.ext_utils.exceptions import TgLinkException
 from bot.helper.ext_utils.files_utils import clean_target, downlod_content
-from bot.helper.ext_utils.status_utils import get_readable_message
+from bot.helper.ext_utils.status_utils import get_readable_message, get_progress_bar_string
 from bot.helper.telegram_helper.bot_commands import BotCommands
 
 
@@ -278,3 +278,31 @@ async def sendStatusMessage(msg, user_id=0):
                                 'is_user': is_user}
     if not Intervals['status'].get(sid):
         Intervals['status'][sid] = setInterval(config_dict['STATUS_UPDATE_INTERVAL'], update_status_message, sid)
+
+
+async def update_dynamic_status(status_message, status_object):
+    """
+    Update a status message with dynamic progress information.
+    """
+    emojis = ["⏳", "🔄", "⏳", "🔄"]
+    emoji_index = 0
+    while True:
+        async with task_dict_lock:
+            if status_object.gid() not in task_dict:
+                break
+
+        progress = status_object.progress()
+        progress_bar = get_progress_bar_string(progress)
+
+        text = f"**{status_object.status()}...** {emojis[emoji_index]}\n\n"
+        text += f"**Name:** `{status_object.name()}`\n"
+        text += f"**Engine:** `{status_object.engine()}`\n"
+        text += f"**Progress:** {progress_bar} {progress}\n"
+        text += f"**Processed:** `{status_object.processed_bytes()}` of `{status_object.size()}`\n"
+        text += f"**Speed:** `{status_object.speed()}`\n"
+        text += f"**ETA:** `{status_object.eta()}`"
+
+        await editMessage(text, status_message)
+
+        emoji_index = (emoji_index + 1) % len(emojis)
+        await sleep(5)
