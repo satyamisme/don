@@ -25,7 +25,8 @@ from bot.helper.mirror_utils.status_utils.ffmpeg_status import FFMpegStatus
 from bot.helper.mirror_utils.status_utils.split_status import SplitStatus
 from bot.helper.mirror_utils.status_utils.zip_status import ZipStatus
 from bot.helper.telegram_helper.bot_commands import BotCommands
-from bot.helper.telegram_helper.message_utils import deleteMessage, sendMessage, sendStatusMessage, get_tg_link_message
+from bot.helper.telegram_helper.message_utils import deleteMessage, sendMessage, sendStatusMessage, get_tg_link_message, update_dynamic_status
+from bot import bot_loop
 
 
 class TaskConfig:
@@ -406,8 +407,12 @@ class TaskConfig:
         pswd = self.extract if isinstance(self.extract, str) else ''
         try:
             LOGGER.info('Extracting: %s', self.name)
+            status = ExtractStatus(self, size, gid)
             async with task_dict_lock:
-                task_dict[self.mid] = ExtractStatus(self, size, gid)
+                task_dict[self.mid] = status
+
+            status_message = await sendMessage(f"📦 Unpacking: *{self.name}*...", self.message)
+            bot_loop.create_task(update_dynamic_status(status_message, status))
             if await aiopath.isdir(dl_path):
                 if self.seed:
                     self.newDir = f'{self.dir}10000'
@@ -479,8 +484,12 @@ class TaskConfig:
         zfpart = ''
         pswd = self.compress if isinstance(self.compress, str) else ''
         if zipmode in ['zfolder', 'zfpart']:
+            status = ZipStatus(self, size, gid)
             async with task_dict_lock:
-                task_dict[self.mid] = ZipStatus(self, size, gid)
+                task_dict[self.mid] = status
+
+            status_message = await sendMessage(f"🗜️ Compressing: *{self.name}*...", self.message)
+            bot_loop.create_task(update_dynamic_status(status_message, status))
             if self.seed and self.isLeech:
                 self.newDir = f'{self.dir}10000'
                 up_path = ospath.join(self.newDir, f'{self.name}.zip')

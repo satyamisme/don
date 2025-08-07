@@ -18,7 +18,7 @@ from bot.helper.ext_utils.task_manager import check_running_tasks
 from bot.helper.listeners import tasks_listener as task
 from bot.helper.mirror_utils.status_utils.ffmpeg_status import FFMpegStatus
 from bot.helper.mirror_utils.status_utils.queue_status import QueueStatus
-from bot.helper.telegram_helper.message_utils import sendStatusMessage, update_status_message
+from bot.helper.telegram_helper.message_utils import sendStatusMessage, update_status_message, update_dynamic_status, sendMessage
 from bot.helper.video_utils.extra_selector import ExtraSelect
 
 
@@ -203,8 +203,19 @@ class VidEcxecutor(FFProgress):
                 main_video = file_list[0]
                 base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Extract', len(file_list) > 1),
                                                                  get_metavideo(main_video), get_path_size(main_video))
-            self._start_handler(streams)
-            await gather(self._send_status(), self.event.wait())
+            from bot import config_dict, bot_loop
+            preferred_lang = config_dict.get('PREFERRED_LANGUAGES')
+            excluded_lang = config_dict.get('EXCLUDED_LANGUAGES')
+
+            if preferred_lang or excluded_lang:
+                selector = ExtraSelect(self)
+                await selector.auto_select(streams)
+                status_message = await sendMessage(f"🎬 *Processing Video: {self.name}* ⏳", self.listener.message)
+                self.listener.message = status_message
+                bot_loop.create_task(update_dynamic_status(status_message, self))
+            else:
+                self._start_handler(streams)
+                await gather(self._send_status(), self.event.wait())
         else:
             return self._up_path
 
@@ -323,8 +334,20 @@ class VidEcxecutor(FFProgress):
             main_video = file_list[0]
             base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Remove', multi),
                                                              get_metavideo(main_video), get_path_size(main_video))
-        self._start_handler(streams)
-        await gather(self._send_status(), self.event.wait())
+
+        from bot import config_dict, bot_loop
+        preferred_lang = config_dict.get('PREFERRED_LANGUAGES')
+        excluded_lang = config_dict.get('EXCLUDED_LANGUAGES')
+
+        if preferred_lang or excluded_lang:
+            selector = ExtraSelect(self)
+            await selector.auto_select(streams)
+            status_message = await sendMessage(f"🎬 *Processing Video: {self.name}* ⏳", self.listener.message)
+            self.listener.message = status_message
+            bot_loop.create_task(update_dynamic_status(status_message, self))
+        else:
+            self._start_handler(streams)
+            await gather(self._send_status(), self.event.wait())
         await self._queue()
         if self.is_cancel:
             return
@@ -448,8 +471,15 @@ class VidEcxecutor(FFProgress):
             main_video = file_list[0]
             base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Compress', multi),
                                                              get_metavideo(main_video), get_path_size(main_video))
+
+        from bot import bot_loop
         self._start_handler(streams)
         await gather(self._send_status(), self.event.wait())
+
+        status_message = await sendMessage(f"🎬 *Compressing Video: {self.name}* ⏳", self.listener.message)
+        self.listener.message = status_message
+        bot_loop.create_task(update_dynamic_status(status_message, self))
+
         await self._queue()
         if self.is_cancel:
             return
