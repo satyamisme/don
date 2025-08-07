@@ -1,5 +1,5 @@
 from time import time
-from bot.helper.ext_utils.status_utils import MirrorStatus, get_readable_file_size, get_readable_time, speed_string_nav, speed_raw
+from bot.helper.ext_utils.status_utils import MirrorStatus, get_readable_file_size, get_readable_time
 
 class VideoStatus:
     def __init__(self, listener, size, gid, process):
@@ -20,10 +20,11 @@ class VideoStatus:
         return f'{round(self.progress_raw(), 2)}%'
 
     def speed_raw(self):
-        return speed_raw(self._processed_bytes, self._start_time)
+        elapsed_time = time() - self._start_time
+        return self._processed_bytes / elapsed_time if elapsed_time > 0 else 0
 
     def speed(self):
-        return speed_string_nav(self._processed_bytes, self._start_time)
+        return f'{get_readable_file_size(self.speed_raw())}/s'
 
     def name(self):
         return self._listener.name
@@ -33,8 +34,12 @@ class VideoStatus:
 
     def eta(self):
         try:
-            seconds = (self._size - self._processed_bytes) / self.speed_raw()
-            return get_readable_time(seconds)
+            speed = self.speed_raw()
+            if speed > 0:
+                seconds = (self._size - self._processed_bytes) / speed
+                return get_readable_time(seconds)
+            else:
+                return '0s'
         except:
             return '0s'
 
