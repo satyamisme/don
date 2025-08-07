@@ -99,15 +99,13 @@ async def run_ffmpeg(path, output_path, video_stream, audio_streams, subtitle_st
     async with task_dict_lock:
         task_dict[listener.mid] = status
 
-    start_time = time()
-
     async def _parser():
-        async for line in process.stderr:
+        async for line in process.stdout:
             line = line.decode('utf-8').strip()
             if 'out_time_ms=' in line:
                 time_in_ms = int(line.split('=')[1])
                 processed_bytes = (time_in_ms / (total_duration * 1000000)) * total_size
-                status.extra_details['processed_bytes'] = processed_bytes
+                status.update_progress(processed_bytes)
 
     parser_task = bot_loop.create_task(_parser())
 
