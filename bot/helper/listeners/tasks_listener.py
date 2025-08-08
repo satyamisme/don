@@ -234,6 +234,7 @@ class TaskListener(TaskConfig):
             await gather(update_status_message(self.message.chat.id), RCTransfer.upload(up_path, size))
 
     async def onUploadComplete(self, link, size, files, folders, mime_type, rclonePath='', dir_id=''):
+        msg = ''
         if self.isSuperChat and config_dict['INCOMPLETE_TASK_NOTIFIER'] and DATABASE_URL:
             await DbManager().rm_complete_task(self.message.link)
 
