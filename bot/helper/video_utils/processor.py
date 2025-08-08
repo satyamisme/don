@@ -145,3 +145,27 @@ async def process_video(path, listener):
         listener.streams_removed = [s for s in original_streams if s not in listener.streams_kept]
 
     return processed_path
+
+async def get_metavideo(url):
+    """
+    Get media metadata from a URL using ffprobe.
+    """
+    try:
+        process = await asyncio.create_subprocess_exec(
+            'ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json',
+            '-show_format', url,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        if process.returncode != 0:
+            LOGGER.error(f"ffprobe error for URL {url}: {stderr.decode().strip()}")
+            return None, None
+
+        media_info = json.loads(stdout)
+        duration = media_info.get('format', {}).get('duration', 0)
+        size = media_info.get('format', {}).get('size', 0)
+
+        return duration, {'size': size}
+    except Exception as e:
+        LOGGER.error(f"Exception while getting media metadata for URL {url}: {e}")
+        return None, None
