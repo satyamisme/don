@@ -47,27 +47,22 @@ async def select_streams(media_info):
             if video_stream is None or stream.get('height', 0) > video_stream.get('height', 0):
                 video_stream = stream
 
-    # Select audio and subtitle streams based on preferred languages
+    # Select audio and subtitle streams based on preferred and excluded languages
     preferred_langs = [lang.strip() for lang in config_dict.get('PREFERRED_LANGUAGES', 'en').split(',')]
+    excluded_langs = [lang.strip() for lang in config_dict.get('EXCLUDED_LANGUAGES', '').split(',')]
 
-    # Audio stream selection with priority
-    selected_audio_stream = None
-    for lang_code in preferred_langs:
-        for stream in media_info.get('streams', []):
-            if stream.get('codec_type') == 'audio':
-                if stream.get('tags', {}).get('language') == lang_code:
-                    selected_audio_stream = stream
-                    break
-        if selected_audio_stream:
-            break
+    # Audio stream selection
+    for stream in media_info.get('streams', []):
+        if stream.get('codec_type') == 'audio':
+            lang = stream.get('tags', {}).get('language')
+            if lang in preferred_langs and lang not in excluded_langs:
+                audio_streams.append(stream)
 
-    if selected_audio_stream:
-        audio_streams.append(selected_audio_stream)
-
-    # Subtitle stream selection (allow-list)
+    # Subtitle stream selection
     for stream in media_info.get('streams', []):
         if stream.get('codec_type') == 'subtitle':
-            if stream.get('tags', {}).get('language') in preferred_langs:
+            lang = stream.get('tags', {}).get('language')
+            if lang in preferred_langs and lang not in excluded_langs:
                 subtitle_streams.append(stream)
 
     return video_stream, audio_streams, subtitle_streams
