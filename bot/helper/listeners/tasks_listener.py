@@ -141,7 +141,7 @@ class TaskListener(TaskConfig):
              # For now, we will leave it as is, but it should be updated to use the new processor
              pass
 
-        if self.isLeech and config_dict['LEECH_VIDEO_TOOLS']:
+        if self.vidMode and self.isLeech:
             video_files = []
             if await aiopath.isfile(up_path):
                 if (await get_document_type(up_path))[0]:
