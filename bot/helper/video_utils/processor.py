@@ -95,7 +95,7 @@ async def run_ffmpeg(path, output_path, video_stream, audio_streams, subtitle_st
         stderr=asyncio.subprocess.PIPE
     )
 
-    status = VideoStatus(listener, total_size, listener.gid, process)
+    status = VideoStatus(listener, total_size, listener.mid, process)
     async with task_dict_lock:
         task_dict[listener.mid] = status
 
