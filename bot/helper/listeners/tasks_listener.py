@@ -84,6 +84,7 @@ class TaskListener(TaskConfig):
             task = task_dict[self.mid]
             self.name = task.name()
             gid = task.gid()
+            self.gid = gid
         LOGGER.info('Download completed: %s', self.name)
         if multi_links:
             await self.onUploadError('Downloaded! Waiting for other tasks.')
@@ -273,7 +274,7 @@ class TaskListener(TaskConfig):
                 await sendCustom(msg, chat_id)
         msg += f'<code>{escape(self.name)}</code>\n'
         msg += f'<b>┌ Size: </b>{size}\n'
-        if hasattr(self, 'streams_kept') and self.isLeech and config_dict['LEECH_VIDEO_TOOLS']:
+        if hasattr(self, 'streams_kept') and self.isLeech:
             msg = '<b>Video Processing Complete</b>\n\n'
             msg += f"<b>Name:</b> <code>{escape(self.name)}</code>\n"
             msg += f"<b>Size:</b> {size}\n\n"
