@@ -54,6 +54,7 @@ class TgUploader:
         self._processed_bytes += chunk_size
 
     async def upload(self, o_files, m_size):
+        LOGGER.info(f"Starting upload for: {self._listener.name}")
         await self._user_settings()
         await self._msg_to_reply()
         corrupted_files = total_files = 0
@@ -133,6 +134,7 @@ class TgUploader:
 
     @retry(wait=wait_exponential(multiplier=2, min=4, max=8), stop=stop_after_attempt(4), retry=retry_if_exception_type(Exception))
     async def _upload_file(self, caption, file, force_document=False):
+        LOGGER.info(f"Uploading file: {self._up_path}")
         if self._thumb and not await aiopath.exists(self._thumb):
             self._thumb = None
         thumb, ss_image = self._thumb, None

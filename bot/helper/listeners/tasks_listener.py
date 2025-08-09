@@ -170,7 +170,6 @@ class TaskListener(TaskConfig):
                     continue
 
             up_dir = self.dir
-            self.name = ospath.basename(up_dir)
             size = await get_path_size(up_dir)
 
             o_files, m_size = [], []
@@ -492,8 +491,10 @@ class TaskListener(TaskConfig):
             task_dict.pop(self.mid, None)
             count = len(task_dict)
         if count == 0:
+            LOGGER.info("No more tasks, cleaning up status message.")
             await self.clean()
         else:
+            LOGGER.info(f"Updating status message for chat: {self.message.chat.id}")
             await update_status_message(self.message.chat.id)
 
         async with queue_dict_lock:
