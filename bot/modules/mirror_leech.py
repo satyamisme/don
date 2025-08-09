@@ -103,9 +103,7 @@ class Mirror(TaskListener):
         folder_name = args['-m'].replace('/', '')
         headers = args['-h']
         isBulk = args['-b']
-        vidTool = args['-vt']
-        if self.isLeech and config_dict['AUTO_PROCESS_LEECH']:
-            vidTool = True
+        vidTool = args['-vt'] or self.isLeech
         file_ = ratio = seed_time = None
         bulk_start = bulk_end = 0
 
