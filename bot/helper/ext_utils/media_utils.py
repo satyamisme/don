@@ -154,13 +154,9 @@ async def take_ss(video_file, ss_nb) -> list:
         cmd = [FFMPEG_NAME, '-hide_banner', '-loglevel', 'error', '-ss', f'{cap_time}', '-i', video_file, '-q:v', '1', '-frames:v', '1', output]
         cap_time += interval
         cmds.append(cmd_exec(cmd))
-    try:
-        results = await wait_for(gather(*cmds), timeout=15)
-        if results[0][2] != 0:
-            LOGGER.error('Error while creating sreenshots from video. Path: %s. stderr: %s', video_file, results[0][1])
-            return []
-    except:
-        LOGGER.error('Error while creating sreenshots from video. Path: %s. Error: Timeout some issues with ffmpeg with specific arch!', video_file)
+    results = await gather(*cmds)
+    if results and results[0][2] != 0:
+        LOGGER.error('Error while creating sreenshots from video. Path: %s. stderr: %s', video_file, results[0][1])
         return []
     return outputs
 
@@ -188,13 +184,10 @@ async def create_thumbnail(video_file, duration):
         duration = 3
     duration = duration // 2
     cmd = [FFMPEG_NAME, '-hide_banner', '-loglevel', 'error', '-ss', f'{duration}', '-i', video_file, '-vf', 'thumbnail', '-frames:v', '1', des_dir]
-    try:
-        _, err, code = await wait_for(cmd_exec(cmd), timeout=15)
-        if code != 0 or not await aiopath.exists(des_dir):
-            LOGGER.error('Error while extracting thumbnail from video. Name: %s stderr: %s', video_file, err)
-            return None
-    except:
-        LOGGER.error('Error while extracting thumbnail from video. Name: %s. Error: Timeout some issues with ffmpeg with specific arch!', video_file)
+    _, err, code = await cmd_exec(cmd)
+    if code != 0 or not await aiopath.exists(des_dir):
+        LOGGER.error('Error while extracting thumbnail from video. Name: %s stderr: %s', video_file, err)
+        return None
     return des_dir
 
 
