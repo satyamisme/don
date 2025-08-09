@@ -175,20 +175,24 @@ async def get_audio_thumb(audio_file):
 
 
 async def create_thumbnail(video_file, duration):
-    des_dir = 'thumbnails'
-    await makedirs(des_dir, exist_ok=True)
-    des_dir = ospath.join(des_dir, f'{time()}.jpg')
-    if duration is None:
-        duration = (await get_media_info(video_file))[0]
-    if duration == 0:
-        duration = 3
-    duration = duration // 2
-    cmd = [FFMPEG_NAME, '-hide_banner', '-loglevel', 'error', '-ss', f'{duration}', '-i', video_file, '-vf', 'thumbnail', '-frames:v', '1', des_dir]
-    _, err, code = await cmd_exec(cmd)
-    if code != 0 or not await aiopath.exists(des_dir):
-        LOGGER.error('Error while extracting thumbnail from video. Name: %s stderr: %s', video_file, err)
+    try:
+        des_dir = 'thumbnails'
+        await makedirs(des_dir, exist_ok=True)
+        des_dir = ospath.join(des_dir, f'{time()}.jpg')
+        if duration is None:
+            duration = (await get_media_info(video_file))[0]
+        if duration == 0:
+            duration = 3
+        duration = duration // 2
+        cmd = [FFMPEG_NAME, '-hide_banner', '-loglevel', 'error', '-ss', f'{duration}', '-i', video_file, '-vf', 'thumbnail', '-frames:v', '1', des_dir]
+        _, err, code = await cmd_exec(cmd)
+        if code != 0 or not await aiopath.exists(des_dir):
+            LOGGER.error('Error while extracting thumbnail from video. Name: %s stderr: %s', video_file, err)
+            return None
+        return des_dir
+    except Exception as e:
+        LOGGER.error(f"Exception in thumbnail extraction for {video_file}: {e}")
         return None
-    return des_dir
 
 
 async def split_file(path, size, dirpath, split_size, listener, obj, start_time=0, i=1, inLoop=False, multi_streams=True):
