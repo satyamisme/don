@@ -69,7 +69,8 @@ async def check_running_tasks(mid: int, state='dl'):
         is_over_limit = (all_limit and dl_count + up_count >= all_limit and (not state_limit or dl_count >= state_limit)) or (state_limit and dl_count >= state_limit)
         if is_over_limit:
             if mid in queued_dl or mid in queued_up:
-                LOGGER.info(f"Task {mid} already queued, skipping")
+                LOGGER.info(f"Task {mid} already queued, waiting for existing event")
+                event = queued_dl.get(mid) or queued_up.get(mid)
                 return is_over_limit, event
             event = Event()
             if state == 'dl':

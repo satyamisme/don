@@ -401,11 +401,13 @@ class TgUploader:
         await clean_target(ss_image)
         if media_result:
             self._buttons.button_link('Media Info', media_result)
-        if config_dict['SAVE_MESSAGE'] and self._listener.isSuperChat:
-            self._buttons.button_data('Save Message', 'save', 'footer')
         for mode, link in zip(['Stream', 'Download'], await gen_link(self._send_msg)):
             if link:
-                self._buttons.button_link(mode, await sync_to_async(short_url, link, self._listener.user_id), 'header')
+                self._buttons.button_link(mode, link, 'header')
+        # Add Get File button
+        direct_url = await gen_link(self._send_msg)[1]  # Get the download link
+        if direct_url:
+            self._buttons.button_link('Get File', direct_url, 'footer')  # Add below other buttons
         self._send_msg = await bot.get_messages(self._send_msg.chat.id, self._send_msg.id)
         try:
             if (buttons := self._buttons.build_menu(2)) and (cmsg := await self._send_msg.edit_reply_markup(buttons)):
