@@ -44,6 +44,7 @@ class TgUploader:
         self._send_msg = None
         self._up_path = ''
         self._leech_log = config_dict['LEECH_LOG']
+        self.uploaded_files = set()
 
     async def _upload_progress(self, current, _):
         if self._is_cancelled:
@@ -61,6 +62,8 @@ class TgUploader:
                 continue
             for file_ in natsorted(files):
                 self._up_path = ospath.join(dirpath, file_)
+                if self._up_path in self.uploaded_files:
+                    continue
                 if file_.lower().endswith(tuple(self._listener.extensionFilter)) or file_.startswith('Thumb'):
                     if not file_.startswith('Thumb'):
                         await clean_target(self._up_path)
@@ -87,6 +90,7 @@ class TgUploader:
                     self._last_msg_in_group = False
                     self._last_uploaded = 0
                     await self._upload_file(caption, file_)
+                    self.uploaded_files.add(self._up_path)
                     total_files += 1
                     if self._is_cancelled:
                         return
