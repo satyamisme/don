@@ -170,6 +170,9 @@ class TaskListener(TaskConfig):
                     continue
 
             up_dir = self.dir
+            files_in_dir = await listdir(up_dir)
+            if len(files_in_dir) == 1:
+                self.name = files_in_dir[0]
             size = await get_path_size(up_dir)
 
             o_files, m_size = [], []
