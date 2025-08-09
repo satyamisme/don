@@ -63,6 +63,8 @@ class TgUploader:
                 continue
             for file_ in natsorted(files):
                 self._up_path = ospath.join(dirpath, file_)
+                LOGGER.info(f"Checking file: {self._up_path}")
+                LOGGER.info(f"Uploaded files set: {self._uploaded_files}")
                 if self._up_path in self._uploaded_files:
                     LOGGER.info(f"Skipping already uploaded file: {self._up_path}")
                     continue
@@ -93,6 +95,8 @@ class TgUploader:
                     self._last_uploaded = 0
                     await self._upload_file(caption, file_)
                     self._uploaded_files.add(self._up_path)
+                    LOGGER.info(f"Added to uploaded files set: {self._up_path}")
+                    LOGGER.info(f"Updated uploaded files set: {self._uploaded_files}")
                     total_files += 1
                     if self._is_cancelled:
                         return
