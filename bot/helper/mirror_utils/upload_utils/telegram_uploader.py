@@ -421,8 +421,11 @@ class TgUploader:
             if link:
                 self._buttons.button_link(mode, await sync_to_async(short_url, link, self._listener.user_id), 'header')
         self._send_msg = await bot.get_messages(self._send_msg.chat.id, self._send_msg.id)
-        if (buttons := self._buttons.build_menu(2)) and (cmsg := await self._send_msg.edit_reply_markup(buttons)):
-            self._send_msg = cmsg
+        try:
+            if (buttons := self._buttons.build_menu(2)) and (cmsg := await self._send_msg.edit_reply_markup(buttons)):
+                self._send_msg = cmsg
+        except Exception as e:
+            LOGGER.error('Error while editing reply markup: %s', e)
 
     def _get_input_media(self, subkey: str, key: str):
         imlist = []
