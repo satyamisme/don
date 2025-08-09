@@ -4,7 +4,7 @@ This module contains the new video processing logic.
 
 from bot import config_dict, LOGGER, task_dict_lock, task_dict, bot_loop
 from bot.helper.ext_utils.bot_utils import sync_to_async
-from bot.helper.ext_utils.files_utils import get_path_size
+from bot.helper.ext_utils.files_utils import get_path_size, clean_target
 from bot.helper.ext_utils.status_utils import get_readable_file_size, get_readable_time
 from bot.helper.telegram_helper.message_utils import sendStatusMessage, update_status_message
 from bot.helper.mirror_utils.status_utils.video_status import VideoStatus
@@ -138,6 +138,7 @@ async def process_video(path, listener):
         listener.streams_kept = [video_stream] + audio_streams + subtitle_streams
         original_streams = media_info.get('streams', [])
         listener.streams_removed = [s for s in original_streams if s not in listener.streams_kept]
+        await clean_target(path)
 
     return processed_path
 
