@@ -37,7 +37,6 @@ from bot.helper.video_utils.processor import process_video
 class TaskListener(TaskConfig):
     def __init__(self):
         super().__init__()
-        self.completed = False
 
     @staticmethod
     async def clean():
@@ -60,9 +59,12 @@ class TaskListener(TaskConfig):
             await DbManager().add_incomplete_task(self.message.chat.id, self.message.link, self.tag)
 
     async def onDownloadComplete(self):
-        if self.completed:
-            return
-        self.completed = True
+        async with task_dict_lock:
+            if self.mid in task_dict:
+                if hasattr(task_dict[self.mid], 'completed') and task_dict[self.mid].completed:
+                    LOGGER.info(f"Skipping already completed task: {self.mid}")
+                    return
+                setattr(task_dict[self.mid], 'completed', True)
         multi_links = False
         if self.sameDir and self.mid in self.sameDir['tasks']:
             while not (self.sameDir['total'] in [1, 0] or self.sameDir['total'] > 1 and len(self.sameDir['tasks']) > 1):
