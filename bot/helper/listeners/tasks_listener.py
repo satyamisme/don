@@ -153,24 +153,26 @@ class TaskListener(TaskConfig):
                         if (await get_document_type(file_path))[0]:
                             video_files.append(file_path)
 
-            processed_files = []
+            if not video_files:
+                await self.onUploadError("No video files found to process.")
+                return
+
             for video_file in video_files:
                 processed_path = await process_video(video_file, self)
-                if processed_path:
-                    processed_files.append(processed_path)
-                else:
-                    # If processing fails, we keep the original file
-                    processed_files.append(video_file)
+                if not processed_path:
+                    LOGGER.error(f"Video processing failed for {video_file}")
+                    continue
 
-            if processed_files:
-                if len(processed_files) == 1:
-                    up_path = processed_files[0]
-                else:
-                    # If there are multiple processed files, we need to decide how to handle them
-                    # For now, we'll just use the directory path
-                    up_path = ospath.dirname(processed_files[0])
+            up_dir = self.dir
+            self.name = ospath.basename(up_dir)
+            size = await get_path_size(up_dir)
 
-            self.seed = False
+            LOGGER.info(f'Leech Name: {self.name}')
+            tg = TgUploader(self, up_dir, size)
+            async with task_dict_lock:
+                task_dict[self.mid] = TelegramStatus(self, tg, size, self.gid, 'up')
+            await gather(update_status_message(self.message.chat.id), tg.upload([], []))
+            return
 
         if not self.compress and not self.extract and not self.vidMode:
             up_path = await self.preName(up_path)

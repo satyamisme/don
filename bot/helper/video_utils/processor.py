@@ -51,21 +51,18 @@ async def select_streams(media_info):
 
     # Hierarchical Audio Stream Selection
     lang_priority = ['tel', 'hin', 'eng']
-    selected_lang = None
+    selected_lang_streams = []
 
     for lang in lang_priority:
-        for stream in all_audio_streams:
-            if stream.get('tags', {}).get('language') == lang:
-                selected_lang = lang
-                break
-        if selected_lang:
+        lang_streams = [s for s in all_audio_streams if s.get('tags', {}).get('language') == lang]
+        if lang_streams:
+            selected_lang_streams = lang_streams
             break
 
-    if selected_lang:
-        # If a priority language is found, keep only that language
-        audio_streams = [s for s in all_audio_streams if s.get('tags', {}).get('language') == selected_lang]
+    if selected_lang_streams:
+        audio_streams = selected_lang_streams
     else:
-        # Otherwise, keep all audio streams
+        # If no priority languages are found, keep all audio streams
         audio_streams = all_audio_streams
 
     # Subtitle selection (simple allow-list based on PREFERRED_LANGUAGES)
