@@ -142,6 +142,7 @@ async def auto_delete_message(*args, stime=config_dict['AUTO_DELETE_MESSAGE_DURA
 
 
 async def delete_status():
+    LOGGER.info("Deleting all status messages.")
     async with task_dict_lock:
         for key, data in list(status_dict.items()):
             try:
@@ -204,6 +205,7 @@ async def get_tg_link_message(link: str, user_id: int):
 
 
 async def update_status_message(sid, force=False):
+    LOGGER.info(f"Updating status message for sid: {sid}")
     async with task_dict_lock:
         if not status_dict.get(sid):
             if obj := Intervals['status'].get(sid):
