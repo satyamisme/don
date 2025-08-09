@@ -23,6 +23,7 @@ class MirrorStatus:
     STATUS_EXTRACTING = 'Extracting'
     STATUS_MERGING = 'Merging'
     STATUS_PAUSED = 'Paused'
+    STATUS_PROCESSING = 'Processing'
     STATUS_QUEUEDL = 'QueueDl'
     STATUS_QUEUEUP = 'QueueUl'
     STATUS_RMSTREAM = 'Removing'
@@ -42,6 +43,7 @@ STATUS_VALUES = [('ALL', 'All'),
                  ('UP', MirrorStatus.STATUS_UPLOADING),
                  ('QD', MirrorStatus.STATUS_QUEUEDL),
                  ('QU', MirrorStatus.STATUS_QUEUEUP),
+                 ('PR', MirrorStatus.STATUS_PROCESSING),
                  ('AR', MirrorStatus.STATUS_ARCHIVING),
                  ('EX', MirrorStatus.STATUS_EXTRACTING),
                  ('CL', MirrorStatus.STATUS_CLONING),
