@@ -62,8 +62,8 @@ class TgUploader:
                 continue
             for file_ in natsorted(files):
                 self._up_path = ospath.join(dirpath, file_)
-                if file_ in self._uploaded_files:
-                    LOGGER.info(f"Skipping already uploaded file: {file_}")
+                if self._up_path in self._uploaded_files:
+                    LOGGER.info(f"Skipping already uploaded file: {self._up_path}")
                     continue
                 if file_.lower().endswith(tuple(self._listener.extensionFilter)) or file_.startswith('Thumb'):
                     if not file_.startswith('Thumb'):
@@ -91,7 +91,7 @@ class TgUploader:
                     self._last_msg_in_group = False
                     self._last_uploaded = 0
                     await self._upload_file(caption, file_)
-                    self._uploaded_files.add(file_)
+                    self._uploaded_files.add(self._up_path)
                     total_files += 1
                     if self._is_cancelled:
                         return
@@ -296,27 +296,6 @@ class TgUploader:
     # ================================================== UTILS ==================================================
     async def _prepare_file(self, file_, dirpath):
         caption = self._caption_mode(file_)
-        if len(file_) > 60:
-            if is_archive(file_):
-                name = get_base_name(file_)
-                ext = file_.split(name, 1)[1]
-            elif match := re_match(r'.+(?=\..+\.0*\d+$)|.+(?=\.part\d+\..+$)', file_):
-                name = match.group(0)
-                ext = file_.split(name, 1)[1]
-            elif len(fsplit := ospath.splitext(file_)) > 1:
-                name, ext = fsplit[0], fsplit[1]
-            else:
-                name, ext = file_, ''
-            name = name[:60 - len(ext)]
-            if self._listener.seed and not self._listener.newDir and not dirpath.endswith('/splited_files_mltb'):
-                dirpath = ospath.join(dirpath, 'copied_mltb')
-                await makedirs(dirpath, exist_ok=True)
-                new_path = ospath.join(dirpath, f'{name}{ext}')
-                self._up_path = await copy(self._up_path, new_path)
-            else:
-                new_path = ospath.join(dirpath, f'{name}{ext}')
-                await aiorename(self._up_path, new_path)
-                self._up_path = new_path
         return caption
 
     def _caption_mode(self, file):

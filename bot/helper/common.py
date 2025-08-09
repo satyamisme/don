@@ -312,49 +312,9 @@ class TaskConfig:
     async def reName(self):
         if not self.isRename:
             return
-        all_files = []
-        for dirpath, _, files in await sync_to_async(walk, self.dir):
-            all_files.extend((dirpath, file) for file in files if not file.endswith(('.aria2', '.!qB')))
-        if all_files:
-            dirpath, file = all_files[0]
-            if len(all_files) == 1 and file != self.isRename:
-                self.seed = False
-                self.name = self.isRename
-                await aiorename(ospath.join(dirpath, file), ospath.join(dirpath, self.isRename))
+        return
 
     async def preName(self, path: str):
-        if self.isRename:
-            return path
-
-        prename, sufname, remname = self.user_dict.get('prename'), self.user_dict.get('sufname'), self.user_dict.get('remname')
-
-        def _rename_file(filename):
-            if prename:
-                filename = f'{prename} {filename}'
-            if sufname:
-                try:
-                    fname, ext = filename.rsplit('.', maxsplit=1)
-                    filename = f'{fname} {sufname}.{ext}'
-                except:
-                    pass
-            if remname:
-                for x in remname.split('|'):
-                    filename = filename.replace(x, '')
-            return filename
-
-        if await aiopath.isfile(path):
-            filename = ospath.basename(path)
-            filedir = ospath.split(path)[0]
-            new_filename = _rename_file(filename)
-            newpath = ospath.join(filedir, new_filename)
-            if any((prename, remname, sufname)):
-                await aiorename(path, newpath)
-            return newpath
-        for dirpath, _, files in await sync_to_async(walk, path):
-            for file in files:
-                new_filename = _rename_file(file)
-                if any((prename, remname, sufname)):
-                    await aiorename(ospath.join(dirpath, file), ospath.join(dirpath, new_filename))
         return path
 
     async def editMetadata(self, path: str, gid: str):

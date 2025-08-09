@@ -147,7 +147,7 @@ async def process_video(path, listener):
         LOGGER.info("No video stream found. Skipping video processing.")
         return path
 
-    output_path = f"{path.rsplit('.', 1)[0]}.processed.mp4"
+    output_path = f"{path.rsplit('.', 1)[0]}.mp4"
     processed_path = await run_ffmpeg(path, output_path, video_stream, audio_streams, subtitle_streams, listener, media_info)
 
     if processed_path:
