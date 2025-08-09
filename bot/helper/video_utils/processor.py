@@ -111,16 +111,25 @@ async def run_ffmpeg(path, output_path, video_stream, audio_streams, subtitle_st
 
     parser_task = bot_loop.create_task(_parser())
 
+    # Log stderr to prevent pipe buffer from filling up
+    async def _log_stderr():
+        async for line in process.stderr:
+            LOGGER.info(f"ffmpeg: {line.decode().strip()}")
+
+    stderr_task = bot_loop.create_task(_log_stderr())
+
     await process.wait()
+
     parser_task.cancel()
+    stderr_task.cancel()
 
     if process.returncode == 0:
         LOGGER.info(f"Video processing successful: {output_path}")
         return output_path
     else:
-        stderr_output = await process.stderr.read()
-        LOGGER.error(f"ffmpeg error: {stderr_output.decode().strip()}")
-        await listener.onUploadError(f"ffmpeg error: {stderr_output.decode().strip()}")
+        # No need to read stderr here as it's already logged
+        LOGGER.error(f"ffmpeg exited with non-zero return code: {process.returncode}")
+        await listener.onUploadError(f"ffmpeg exited with non-zero return code: {process.returncode}")
         return None
 
 
