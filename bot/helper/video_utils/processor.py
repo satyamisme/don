@@ -42,10 +42,24 @@ async def select_streams(media_info):
     subtitle_streams = []
 
     # Select best video stream
+    best_video_stream = None
+    max_pixels = -1
+
     for stream in media_info.get('streams', []):
         if stream.get('codec_type') == 'video':
-            if video_stream is None or stream.get('height', 0) > video_stream.get('height', 0):
-                video_stream = stream
+            # Ignore attached pictures
+            if stream.get('disposition', {}).get('attached_pic'):
+                continue
+
+            width = stream.get('width', 0)
+            height = stream.get('height', 0)
+            pixels = width * height
+
+            if pixels > max_pixels:
+                max_pixels = pixels
+                best_video_stream = stream
+
+    video_stream = best_video_stream
 
     all_audio_streams = [s for s in media_info.get('streams', []) if s.get('codec_type') == 'audio']
 
