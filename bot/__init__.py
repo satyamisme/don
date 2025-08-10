@@ -153,13 +153,21 @@ else:
     config_dict = {}
 
 if OWNER_ID := environ.get('OWNER_ID', ''):
-    OWNER_ID = int(OWNER_ID)
+    try:
+        OWNER_ID = int(str(OWNER_ID).strip().split('#')[0].replace('"', '').replace("'", ""))
+    except:
+        LOGGER.error('OWNER_ID is not a valid integer! Exiting now')
+        exit(1)
 else:
     LOGGER.error('OWNER_ID variable is missing! Exiting now')
     exit(1)
 
 if TELEGRAM_API := environ.get('TELEGRAM_API', ''):
-    TELEGRAM_API = int(TELEGRAM_API)
+    try:
+        TELEGRAM_API = int(str(TELEGRAM_API).strip().split('#')[0].replace('"', '').replace("'", ""))
+    except:
+        LOGGER.error('TELEGRAM_API is not a valid integer! Exiting now')
+        exit(1)
 else:
     LOGGER.error('TELEGRAM_API variable is missing! Exiting now')
     exit(1)
