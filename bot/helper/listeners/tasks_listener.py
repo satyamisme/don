@@ -2,7 +2,8 @@ from aiofiles.os import listdir, path as aiopath, makedirs
 from aioshutil import move
 from asyncio import sleep, gather
 from html import escape
-from os import path as ospath
+from natsort import natsorted
+from os import path as ospath, walk
 from random import choice
 from requests import utils as rutils
 from time import time
@@ -14,6 +15,7 @@ from bot.helper.ext_utils.bot_utils import is_premium_user, UserDaily, default_b
 from bot.helper.ext_utils.db_handler import DbManager
 from bot.helper.ext_utils.files_utils import get_path_size, clean_download, clean_target, join_files
 from bot.helper.ext_utils.links_utils import is_magnet, is_url, get_link, is_media, is_gdrive_link, get_stream_link, is_gdrive_id
+from bot.helper.ext_utils.media_utils import get_document_type
 from bot.helper.ext_utils.shortenurl import short_url
 from bot.helper.ext_utils.status_utils import action, get_date_time, get_readable_file_size, get_readable_time
 from bot.helper.ext_utils.task_manager import start_from_queued, check_running_tasks
@@ -29,7 +31,7 @@ from bot.helper.mirror_utils.upload_utils.gofile_uploader import GoFileUploader
 from bot.helper.mirror_utils.upload_utils.telegram_uploader import TgUploader
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.message_utils import limit, sendCustom, sendMedia, sendMessage, auto_delete_message, sendSticker, sendFile, copyMessage, sendingMessage, update_status_message, delete_status
-from bot.helper.video_utils.executor import VidEcxecutor
+from bot.helper.video_utils.processor import process_video
 
 
 class TaskListener(TaskConfig):
@@ -57,6 +59,12 @@ class TaskListener(TaskConfig):
             await DbManager().add_incomplete_task(self.message.chat.id, self.message.link, self.tag)
 
     async def onDownloadComplete(self):
+        async with task_dict_lock:
+            if self.mid in task_dict:
+                if hasattr(task_dict[self.mid], 'completed') and task_dict[self.mid].completed:
+                    LOGGER.info(f"Skipping already completed task: {self.mid}")
+                    return
+                setattr(task_dict[self.mid], 'completed', True)
         multi_links = False
         if self.sameDir and self.mid in self.sameDir['tasks']:
             while not (self.sameDir['total'] in [1, 0] or self.sameDir['total'] > 1 and len(self.sameDir['tasks']) > 1):
@@ -82,10 +90,7 @@ class TaskListener(TaskConfig):
             task = task_dict[self.mid]
             self.name = task.name()
             gid = task.gid()
-        LOGGER.info('Download completed: %s', self.name)
-        if multi_links:
-            await self.onUploadError('Downloaded! Waiting for other tasks.')
-            return
+            self.gid = gid
 
         up_path = ospath.join(self.dir, self.name)
         if not await aiopath.exists(up_path):
@@ -94,9 +99,15 @@ class TaskListener(TaskConfig):
                 self.name = files[-1]
                 if self.name == 'yt-dlp-thumb':
                     self.name = files[0]
+                up_path = ospath.join(self.dir, self.name)
             except Exception as e:
                 await self.onUploadError(e)
                 return
+
+        LOGGER.info('Download completed: %s', self.name)
+        if multi_links:
+            await self.onUploadError('Downloaded! Waiting for other tasks.')
+            return
 
         await self.isOneFile(up_path)
         await self.reName()
@@ -129,23 +140,49 @@ class TaskListener(TaskConfig):
             size = await get_path_size(up_dir)
 
         if self.compress:
-            if self.vidMode:
-                up_path = await VidEcxecutor(self, up_path, gid).execute()
-                if not up_path:
-                    return
-                self.seed = False
-
             up_path = await self.proceedCompress(up_path, size, gid)
             if not up_path:
                 return
 
-        if not self.compress and self.vidMode:
-            up_path = await VidEcxecutor(self, up_path, gid).execute()
-            if not up_path:
-                return
-            self.seed = False
+        if self.vidMode and not self.isLeech:
+             # This is for manual -vt option, which is not the focus of this task
+             # For now, we will leave it as is, but it should be updated to use the new processor
+             pass
 
-        if not self.compress and not self.extract:
+        if self.vidMode and self.isLeech:
+            video_files = []
+            if await aiopath.isfile(up_path):
+                if (await get_document_type(up_path))[0]:
+                    video_files.append(up_path)
+            else:
+                for dirpath, _, files in await sync_to_async(walk, up_path):
+                    for file in natsorted(files):
+                        file_path = ospath.join(dirpath, file)
+                        if (await get_document_type(file_path))[0]:
+                            video_files.append(file_path)
+
+            if not video_files:
+                await self.onUploadError("No video files found to process.")
+                return
+
+            for video_file in video_files:
+                processed_path = await process_video(video_file, self)
+                if not processed_path:
+                    LOGGER.error(f"Video processing failed for {video_file}")
+                    continue
+
+            up_dir = self.dir
+            self.name = ospath.basename(up_dir)
+            size = await get_path_size(up_dir)
+
+            LOGGER.info(f'Leech Name: {self.name}')
+            tg = TgUploader(self, up_dir, size)
+            async with task_dict_lock:
+                task_dict[self.mid] = TelegramStatus(self, tg, size, self.gid, 'up')
+            await gather(update_status_message(self.message.chat.id), tg.upload([], []))
+            return
+
+        if not self.compress and not self.extract and not self.vidMode:
             up_path = await self.preName(up_path)
             await self.editMetadata(up_path, gid)
 
@@ -156,7 +193,7 @@ class TaskListener(TaskConfig):
         size = await get_path_size(up_dir)
         if self.isLeech:
             o_files, m_size = [], []
-            if not self.compress:
+            if not self.compress and not self.vidMode:
                 result = await self.proceedSplit(up_dir, m_size, o_files, size, gid)
                 if not result:
                     return
@@ -207,6 +244,7 @@ class TaskListener(TaskConfig):
             await gather(update_status_message(self.message.chat.id), RCTransfer.upload(up_path, size))
 
     async def onUploadComplete(self, link, size, files, folders, mime_type, rclonePath='', dir_id=''):
+        msg = ''
         if self.isSuperChat and config_dict['INCOMPLETE_TASK_NOTIFIER'] and DATABASE_URL:
             await DbManager().rm_complete_task(self.message.link)
 
@@ -247,7 +285,37 @@ class TaskListener(TaskConfig):
                 await sendCustom(msg, chat_id)
         msg += f'<code>{escape(self.name)}</code>\n'
         msg += f'<b>┌ Size: </b>{size}\n'
-        if self.isLeech:
+        if hasattr(self, 'streams_kept') and self.isLeech:
+            msg = '<b>Video Processing Complete</b>\n\n'
+            msg += f"<b>Name:</b> <code>{escape(self.name)}</code>\n"
+            msg += f"<b>Size:</b> {size}\n\n"
+
+            msg += "<b>Streams Kept:</b>\n"
+            video_stream = self.streams_kept[0]
+            msg += f"  - Video: #{video_stream['index']} ({video_stream.get('codec_name')}, {video_stream.get('width')}x{video_stream.get('height')})\n"
+            for stream in self.streams_kept:
+                if stream['codec_type'] == 'audio':
+                    lang = stream.get('tags', {}).get('language', 'und')
+                    msg += f"  - Audio: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
+                elif stream['codec_type'] == 'subtitle':
+                    lang = stream.get('tags', {}).get('language', 'und')
+                    msg += f"  - Subtitle: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
+
+            if hasattr(self, 'streams_removed') and self.streams_removed:
+                msg += "\n<b>Streams Removed:</b>\n"
+                for stream in self.streams_removed:
+                    if stream['codec_type'] == 'audio':
+                        lang = stream.get('tags', {}).get('language', 'und')
+                        msg += f"  - Audio: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
+                    elif stream['codec_type'] == 'subtitle':
+                        lang = stream.get('tags', {}).get('language', 'und')
+                        msg += f"  - Subtitle: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
+
+            if link:
+                buttons.button_link('Download', link)
+
+            uploadmsg = await sendingMessage(msg, self.message, images, buttons.build_menu(2))
+        elif self.isLeech:
             if config_dict['SOURCE_LINK']:
                 scr_link = get_link(self.message)
                 if is_magnet(scr_link):

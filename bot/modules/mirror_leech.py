@@ -27,7 +27,6 @@ from bot.helper.mirror_utils.download_utils.telegram_download import TelegramDow
 from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.helper.telegram_helper.message_utils import sendMessage, deleteMessage, auto_delete_message, editMessage, get_tg_link_message
-from bot.helper.video_utils.selector import SelectMode
 from myjd.exception import MYJDException
 
 
@@ -104,7 +103,7 @@ class Mirror(TaskListener):
         folder_name = args['-m'].replace('/', '')
         headers = args['-h']
         isBulk = args['-b']
-        vidTool = args['-vt']
+        vidTool = args['-vt'] or self.isLeech
         file_ = ratio = seed_time = None
         bulk_start = bulk_end = 0
 
@@ -141,21 +140,14 @@ class Mirror(TaskListener):
             elif self.sameDir:
                 self.sameDir['total'] -= 1
         else:
-            if vidTool and not self.vidMode and self.sameDir:
-                self.vidMode = await SelectMode(self).get_buttons()
-                if not self.vidMode:
-                    return
             await self.initBulk(input_list, bulk_start, bulk_end, Mirror)
             return
 
         if self.bulk:
             del self.bulk[0]
 
-        if vidTool and (not self.vidMode or not self.sameDir):
-            self.vidMode = await SelectMode(self).get_buttons()
-            if not self.vidMode:
-                self.removeFromSameDir()
-                return
+        if vidTool:
+            self.vidMode = True
 
         self.run_multi(input_list, folder_name, Mirror)
 

@@ -62,19 +62,21 @@ async def check_running_tasks(mid: int, state='dl'):
     state_limit = (config_dict['QUEUE_DOWNLOAD'] if state == 'dl' else config_dict['QUEUE_UPLOAD'])
     event = None
     is_over_limit = False
-    if all_limit or state_limit:
-        async with queue_dict_lock:
-            if state == 'up' and mid in non_queued_dl:
-                non_queued_dl.remove(mid)
-            dl_count, up_count = len(non_queued_dl), len(non_queued_up)
-            is_over_limit = (all_limit and dl_count + up_count >= all_limit and (not state_limit or dl_count >= state_limit)) or (state_limit and dl_count >= state_limit)
-            if is_over_limit:
-                event = Event()
-                if state == 'dl':
-                    queued_dl[mid] = event
-                else:
-                    queued_up[mid] = event
-
+    async with queue_dict_lock:
+        if state == 'up' and mid in non_queued_dl:
+            non_queued_dl.remove(mid)
+        dl_count, up_count = len(non_queued_dl), len(non_queued_up)
+        is_over_limit = (all_limit and dl_count + up_count >= all_limit and (not state_limit or dl_count >= state_limit)) or (state_limit and dl_count >= state_limit)
+        if is_over_limit:
+            if mid in queued_dl or mid in queued_up:
+                LOGGER.info(f"Task {mid} already queued, waiting for existing event")
+                event = queued_dl.get(mid) or queued_up.get(mid)
+                return is_over_limit, event
+            event = Event()
+            if state == 'dl':
+                queued_dl[mid] = event
+            else:
+                queued_up[mid] = event
     return is_over_limit, event
 
 

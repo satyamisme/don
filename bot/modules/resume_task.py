@@ -11,7 +11,6 @@ from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.message_utils import sendMessage
 from bot.modules.clone import Clone
 from bot.modules.mirror_leech import Mirror
-from bot.modules.video_tools import VidTools
 from bot.modules.ytdlp import YtDlp
 
 
@@ -42,7 +41,7 @@ async def start_resume_task(client: Client, tasks: list):
     user_id = ''
     for msg in tasks:
         cmd = f'{action(msg)[1:]}{config_dict["CMD_SUFFIX"]}'
-        isQbit = isLeech = isYt = isJd = isClone = isVt = False
+        isQbit = isLeech = isYt = isJd = isClone = False
 
         def _check_cmd(cmds):
             if any(x == cmd for x in cmds):
@@ -64,10 +63,6 @@ async def start_resume_task(client: Client, tasks: list):
             isLeech = isJd = True
         elif _check_cmd(BotCommands.CloneCommand):
             isClone = True
-        elif _check_cmd(BotCommands.MVidCommand):
-            isVt = True
-        elif _check_cmd(BotCommands.LVidCommand):
-            isLeech = isVt = True
 
         message = await sendMessage(msg.text, msg.reply_to_message or msg)
         message.from_user = msg.from_user
@@ -77,8 +72,6 @@ async def start_resume_task(client: Client, tasks: list):
             YtDlp(client, message, isLeech=isLeech).newEvent()
         elif isClone:
             Clone(client, message).newEvent()
-        elif isVt:
-            VidTools(client, message, isLeech=isLeech).newEvent()
         else:
             Mirror(client, message, isQbit, isJd, isLeech).newEvent()
         await sleep(config_dict['MULTI_TIMEGAP'])

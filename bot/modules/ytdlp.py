@@ -21,7 +21,6 @@ from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.helper.telegram_helper.message_utils import sendMessage, editMessage, auto_delete_message, deleteMessage
-from bot.helper.video_utils.selector import SelectMode
 
 
 class YtSelection:
@@ -319,22 +318,14 @@ class YtDlp(TaskListener):
             elif self.sameDir:
                 self.sameDir['total'] -= 1
         else:
-            if vidTool and not self.vidMode and self.sameDir:
-                self.vidMode = await SelectMode(self).get_buttons()
-                if not self.vidMode:
-                    self.removeFromSameDir()
-                    return
             await self.initBulk(input_list, bulk_start, bulk_end, YtDlp)
             return
 
         if self.bulk:
             del self.bulk[0]
 
-        if vidTool and (not self.vidMode or not self.sameDir):
-            self.vidMode = await SelectMode(self).get_buttons()
-            if not self.vidMode:
-                self.removeFromSameDir()
-                return
+        if vidTool:
+            self.vidMode = True
 
         path = ospath.join(f'{config_dict["DOWNLOAD_DIR"]}{self.mid}', folder_name)
 

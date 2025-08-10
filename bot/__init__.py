@@ -726,7 +726,12 @@ config_dict = {'BOT_TOKEN': BOT_TOKEN,
                'SEARCH_LIMIT': SEARCH_LIMIT,
                # HEROKU
                'HEROKU_API_KEY': HEROKU_API_KEY,
-               'HEROKU_APP_NAME': HEROKU_APP_NAME}
+               'HEROKU_APP_NAME': HEROKU_APP_NAME,
+               # Language
+               'PREFERRED_LANGUAGES': environ.get('PREFERRED_LANGUAGES', 'en,hi,te'),
+               'EXCLUDED_LANGUAGES': environ.get('EXCLUDED_LANGUAGES', 'ta,ml'),
+               'AUTO_PROCESS_LEECH': environ.get('AUTO_PROCESS_LEECH', 'True').lower() == 'true',
+               'LEECH_VIDEO_TOOLS': environ.get('LEECH_VIDEO_TOOLS', 'False').lower() == 'true'}
 
 if GDRIVE_ID:
     DRIVES_NAMES.append('Main')

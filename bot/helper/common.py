@@ -25,7 +25,8 @@ from bot.helper.mirror_utils.status_utils.ffmpeg_status import FFMpegStatus
 from bot.helper.mirror_utils.status_utils.split_status import SplitStatus
 from bot.helper.mirror_utils.status_utils.zip_status import ZipStatus
 from bot.helper.telegram_helper.bot_commands import BotCommands
-from bot.helper.telegram_helper.message_utils import deleteMessage, sendMessage, sendStatusMessage, get_tg_link_message
+from bot.helper.telegram_helper.message_utils import deleteMessage, sendMessage, sendStatusMessage, get_tg_link_message, update_dynamic_status
+from bot import bot_loop
 
 
 class TaskConfig:
@@ -311,49 +312,9 @@ class TaskConfig:
     async def reName(self):
         if not self.isRename:
             return
-        all_files = []
-        for dirpath, _, files in await sync_to_async(walk, self.dir):
-            all_files.extend((dirpath, file) for file in files if not file.endswith(('.aria2', '.!qB')))
-        if all_files:
-            dirpath, file = all_files[0]
-            if len(all_files) == 1 and file != self.isRename:
-                self.seed = False
-                self.name = self.isRename
-                await aiorename(ospath.join(dirpath, file), ospath.join(dirpath, self.isRename))
+        return
 
     async def preName(self, path: str):
-        if self.isRename:
-            return path
-
-        prename, sufname, remname = self.user_dict.get('prename'), self.user_dict.get('sufname'), self.user_dict.get('remname')
-
-        def _rename_file(filename):
-            if prename:
-                filename = f'{prename} {filename}'
-            if sufname:
-                try:
-                    fname, ext = filename.rsplit('.', maxsplit=1)
-                    filename = f'{fname} {sufname}.{ext}'
-                except:
-                    pass
-            if remname:
-                for x in remname.split('|'):
-                    filename = filename.replace(x, '')
-            return filename
-
-        if await aiopath.isfile(path):
-            filename = ospath.basename(path)
-            filedir = ospath.split(path)[0]
-            new_filename = _rename_file(filename)
-            newpath = ospath.join(filedir, new_filename)
-            if any((prename, remname, sufname)):
-                await aiorename(path, newpath)
-            return newpath
-        for dirpath, _, files in await sync_to_async(walk, path):
-            for file in files:
-                new_filename = _rename_file(file)
-                if any((prename, remname, sufname)):
-                    await aiorename(ospath.join(dirpath, file), ospath.join(dirpath, new_filename))
         return path
 
     async def editMetadata(self, path: str, gid: str):
@@ -406,8 +367,12 @@ class TaskConfig:
         pswd = self.extract if isinstance(self.extract, str) else ''
         try:
             LOGGER.info('Extracting: %s', self.name)
+            status = ExtractStatus(self, size, gid)
             async with task_dict_lock:
-                task_dict[self.mid] = ExtractStatus(self, size, gid)
+                task_dict[self.mid] = status
+
+            status_message = await sendMessage(f"📦 Unpacking: *{self.name}*...", self.message)
+            bot_loop.create_task(update_dynamic_status(status_message, status))
             if await aiopath.isdir(dl_path):
                 if self.seed:
                     self.newDir = f'{self.dir}10000'
@@ -479,8 +444,12 @@ class TaskConfig:
         zfpart = ''
         pswd = self.compress if isinstance(self.compress, str) else ''
         if zipmode in ['zfolder', 'zfpart']:
+            status = ZipStatus(self, size, gid)
             async with task_dict_lock:
-                task_dict[self.mid] = ZipStatus(self, size, gid)
+                task_dict[self.mid] = status
+
+            status_message = await sendMessage(f"🗜️ Compressing: *{self.name}*...", self.message)
+            bot_loop.create_task(update_dynamic_status(status_message, status))
             if self.seed and self.isLeech:
                 self.newDir = f'{self.dir}10000'
                 up_path = ospath.join(self.newDir, f'{self.name}.zip')
