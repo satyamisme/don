@@ -175,11 +175,16 @@ class TaskListener(TaskConfig):
             self.name = ospath.basename(up_dir)
             size = await get_path_size(up_dir)
 
+            o_files, m_size = [], []
+            result = await self.proceedSplit(up_dir, m_size, o_files, size, self.gid)
+            if not result:
+                return
+
             LOGGER.info(f'Leech Name: {self.name}')
             tg = TgUploader(self, up_dir, size)
             async with task_dict_lock:
                 task_dict[self.mid] = TelegramStatus(self, tg, size, self.gid, 'up')
-            await gather(update_status_message(self.message.chat.id), tg.upload([], []))
+            await gather(update_status_message(self.message.chat.id), tg.upload(o_files, m_size))
             return
 
         if not self.compress and not self.extract and not self.vidMode:
