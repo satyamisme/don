@@ -29,6 +29,7 @@ class TelegramDownloadHelper:
         self._id = ''
         self._is_cancelled = False
         self._client: Client = bot
+        self.download_completed = False
 
     @property
     def speed(self):
@@ -69,6 +70,9 @@ class TelegramDownloadHelper:
         await self._listener.onDownloadError(error, listfile)
 
     async def _onDownloadComplete(self):
+        if self.download_completed:
+            return
+        self.download_completed = True
         await self._listener.onDownloadComplete()
         async with global_lock:
             GLOBAL_GID.remove(self._id)

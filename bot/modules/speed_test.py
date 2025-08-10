@@ -16,8 +16,15 @@ from bot.helper.telegram_helper.message_utils import auto_delete_message, sendMe
 async def speedtest(_, message: Message):
     msg = await sendMessage('<i>Running speed test...</i>', message)
     try:
-        test = Speedtest()
-        await sync_to_async(test.get_best_server)
+        args = message.text.split()
+        server_id = None
+        if len(args) > 1:
+            server_id = args[1]
+        test = Speedtest(secure=True)
+        if server_id:
+            await sync_to_async(test.get_servers, [server_id])
+        else:
+            await sync_to_async(test.get_best_server)
         await sync_to_async(test.download)
         await sync_to_async(test.upload)
         await sync_to_async(test.results.share)

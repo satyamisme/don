@@ -23,6 +23,7 @@ class MirrorStatus:
     STATUS_EXTRACTING = 'Extracting'
     STATUS_MERGING = 'Merging'
     STATUS_PAUSED = 'Paused'
+    STATUS_PROCESSING = 'Processing'
     STATUS_QUEUEDL = 'QueueDl'
     STATUS_QUEUEUP = 'QueueUl'
     STATUS_RMSTREAM = 'Removing'
@@ -42,6 +43,7 @@ STATUS_VALUES = [('ALL', 'All'),
                  ('UP', MirrorStatus.STATUS_UPLOADING),
                  ('QD', MirrorStatus.STATUS_QUEUEDL),
                  ('QU', MirrorStatus.STATUS_QUEUEUP),
+                 ('PR', MirrorStatus.STATUS_PROCESSING),
                  ('AR', MirrorStatus.STATUS_ARCHIVING),
                  ('EX', MirrorStatus.STATUS_EXTRACTING),
                  ('CL', MirrorStatus.STATUS_CLONING),
@@ -145,7 +147,8 @@ def get_readable_message(sid: int, is_user: bool, page_no: int=1, status : str='
     start_position = (page_no - 1) * STATUS_LIMIT
     for index, task in enumerate(tasks[start_position:STATUS_LIMIT + start_position], start=1):
         tstatus = task.status()
-        msg += f'<b>{index+start_position}.</b> <code>{escape(str(task.name())) or "N/A"}</code>'
+        task_name = task.name().replace('[METADATA]', '')
+        msg += f'<b>{index+start_position}.</b> <code>{escape(str(task_name)) or "N/A"}</code>'
         if task.listener.isSuperChat:
             reply_to = task.listener.message.reply_to_message
             link = task.listener.message.link if not reply_to or getattr(reply_to.from_user, 'is_bot', None) else reply_to.link

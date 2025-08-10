@@ -7,12 +7,13 @@ from bot.helper.ext_utils.status_utils import get_readable_file_size, MirrorStat
 
 
 class FFMpegStatus:
-    def __init__(self, listener, obj, gid, status):
+    def __init__(self, listener, obj, gid, status, path=None):
         self._gid = gid
         self._obj = obj
         self._status = status
         self._time = time()
         self.listener = listener
+        self._path = path
 
     @staticmethod
     def engine():
@@ -40,6 +41,8 @@ class FFMpegStatus:
         return f'{get_readable_file_size(self._obj.speed)}/s'
 
     def name(self):
+        if self._path:
+            return ospath.basename(self._path)
         return self._obj.name if self._obj else self.listener.name
 
     def size(self):

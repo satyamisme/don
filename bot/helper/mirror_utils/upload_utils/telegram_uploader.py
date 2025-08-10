@@ -44,6 +44,7 @@ class TgUploader:
         self._send_msg = None
         self._up_path = ''
         self._leech_log = config_dict['LEECH_LOG']
+        self._uploaded_files = set()
 
     async def _upload_progress(self, current, _):
         if self._is_cancelled:
@@ -53,6 +54,7 @@ class TgUploader:
         self._processed_bytes += chunk_size
 
     async def upload(self, o_files, m_size):
+        LOGGER.info(f"Starting upload for: {self._listener.name}")
         await self._user_settings()
         await self._msg_to_reply()
         corrupted_files = total_files = 0
@@ -61,13 +63,20 @@ class TgUploader:
                 continue
             for file_ in natsorted(files):
                 self._up_path = ospath.join(dirpath, file_)
+                LOGGER.info(f"Checking file: {self._up_path}")
+                LOGGER.info(f"Uploaded files set: {self._uploaded_files}")
+                if self._up_path in self._uploaded_files:
+                    LOGGER.info(f"Skipping already uploaded file: {self._up_path}")
+                    continue
                 if file_.lower().endswith(tuple(self._listener.extensionFilter)) or file_.startswith('Thumb'):
                     if not file_.startswith('Thumb'):
                         await clean_target(self._up_path)
                     continue
                 try:
                     f_size = await get_path_size(self._up_path)
-                    if self._listener.seed and file_ in o_files and f_size in m_size:
+                    if file_ in o_files:
+                        continue
+                    if self._listener.seed and f_size in m_size:
                         continue
                     if f_size == 0:
                         corrupted_files += 1
@@ -87,6 +96,9 @@ class TgUploader:
                     self._last_msg_in_group = False
                     self._last_uploaded = 0
                     await self._upload_file(caption, file_)
+                    self._uploaded_files.add(self._up_path)
+                    LOGGER.info(f"Added to uploaded files set: {self._up_path}")
+                    LOGGER.info(f"Updated uploaded files set: {self._uploaded_files}")
                     total_files += 1
                     if self._is_cancelled:
                         return
@@ -128,6 +140,7 @@ class TgUploader:
 
     @retry(wait=wait_exponential(multiplier=2, min=4, max=8), stop=stop_after_attempt(4), retry=retry_if_exception_type(Exception))
     async def _upload_file(self, caption, file, force_document=False):
+        LOGGER.info(f"Uploading file: {self._up_path}")
         if self._thumb and not await aiopath.exists(self._thumb):
             self._thumb = None
         thumb, ss_image = self._thumb, None
@@ -224,8 +237,9 @@ class TgUploader:
                 return
             await self._final_message(ss_image, bool(is_video or is_audio))
             
-            await self._copy_Leech(self._listener.user_id, self._send_msg)
-            if self._listener.upDest:
+            if self._send_msg.chat.id != self._listener.user_id:
+                await self._copy_Leech(self._listener.user_id, self._send_msg)
+            if self._listener.upDest and self._send_msg.chat.id != self._listener.upDest:
                 await self._copy_Leech(self._listener.upDest, self._send_msg)
 
             if not self._is_cancelled and self._media_group and (self._send_msg.video or self._send_msg.document):
@@ -291,27 +305,6 @@ class TgUploader:
     # ================================================== UTILS ==================================================
     async def _prepare_file(self, file_, dirpath):
         caption = self._caption_mode(file_)
-        if len(file_) > 60:
-            if is_archive(file_):
-                name = get_base_name(file_)
-                ext = file_.split(name, 1)[1]
-            elif match := re_match(r'.+(?=\..+\.0*\d+$)|.+(?=\.part\d+\..+$)', file_):
-                name = match.group(0)
-                ext = file_.split(name, 1)[1]
-            elif len(fsplit := ospath.splitext(file_)) > 1:
-                name, ext = fsplit[0], fsplit[1]
-            else:
-                name, ext = file_, ''
-            name = name[:60 - len(ext)]
-            if self._listener.seed and not self._listener.newDir and not dirpath.endswith('/splited_files_mltb'):
-                dirpath = ospath.join(dirpath, 'copied_mltb')
-                await makedirs(dirpath, exist_ok=True)
-                new_path = ospath.join(dirpath, f'{name}{ext}')
-                self._up_path = await copy(self._up_path, new_path)
-            else:
-                new_path = ospath.join(dirpath, f'{name}{ext}')
-                await aiorename(self._up_path, new_path)
-                self._up_path = new_path
         return caption
 
     def _caption_mode(self, file):
@@ -411,18 +404,28 @@ class TgUploader:
     @handle_message
     async def _final_message(self, ss_image, media_info: bool=False):
         self._buttons = ButtonMaker()
-        media_result = await post_media_info(self._up_path, self._size, ss_image) if media_info else None
-        await clean_target(ss_image)
-        if media_result:
-            self._buttons.button_link('Media Info', media_result)
+        if media_info:
+            media_result = await post_media_info(self._up_path, self._size, ss_image)
+            await clean_target(ss_image)
+            if media_result:
+                self._buttons.button_link('Media Info', media_result, 'header')
+
+        stream_link, direct_url = await gen_link(self._send_msg)
+        if stream_link:
+            self._buttons.button_link('Stream', stream_link, 'header')
+        if direct_url:
+            self._buttons.button_link('Download', direct_url, 'header')
+            self._buttons.button_link('Get File', direct_url, 'footer')
+
         if config_dict['SAVE_MESSAGE'] and self._listener.isSuperChat:
             self._buttons.button_data('Save Message', 'save', 'footer')
-        for mode, link in zip(['Stream', 'Download'], await gen_link(self._send_msg)):
-            if link:
-                self._buttons.button_link(mode, await sync_to_async(short_url, link, self._listener.user_id), 'header')
+
         self._send_msg = await bot.get_messages(self._send_msg.chat.id, self._send_msg.id)
-        if (buttons := self._buttons.build_menu(2)) and (cmsg := await self._send_msg.edit_reply_markup(buttons)):
-            self._send_msg = cmsg
+        try:
+            if (buttons := self._buttons.build_menu(2)) and (cmsg := await self._send_msg.edit_reply_markup(buttons)):
+                self._send_msg = cmsg
+        except Exception as e:
+            LOGGER.error('Error while editing reply markup: %s', e)
 
     def _get_input_media(self, subkey: str, key: str):
         imlist = []

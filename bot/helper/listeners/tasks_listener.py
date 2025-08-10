@@ -59,6 +59,12 @@ class TaskListener(TaskConfig):
             await DbManager().add_incomplete_task(self.message.chat.id, self.message.link, self.tag)
 
     async def onDownloadComplete(self):
+        async with task_dict_lock:
+            if self.mid in task_dict:
+                if hasattr(task_dict[self.mid], 'completed') and task_dict[self.mid].completed:
+                    LOGGER.info(f"Skipping already completed task: {self.mid}")
+                    return
+                setattr(task_dict[self.mid], 'completed', True)
         multi_links = False
         if self.sameDir and self.mid in self.sameDir['tasks']:
             while not (self.sameDir['total'] in [1, 0] or self.sameDir['total'] > 1 and len(self.sameDir['tasks']) > 1):
@@ -85,10 +91,6 @@ class TaskListener(TaskConfig):
             self.name = task.name()
             gid = task.gid()
             self.gid = gid
-        LOGGER.info('Download completed: %s', self.name)
-        if multi_links:
-            await self.onUploadError('Downloaded! Waiting for other tasks.')
-            return
 
         up_path = ospath.join(self.dir, self.name)
         if not await aiopath.exists(up_path):
@@ -97,9 +99,15 @@ class TaskListener(TaskConfig):
                 self.name = files[-1]
                 if self.name == 'yt-dlp-thumb':
                     self.name = files[0]
+                up_path = ospath.join(self.dir, self.name)
             except Exception as e:
                 await self.onUploadError(e)
                 return
+
+        LOGGER.info('Download completed: %s', self.name)
+        if multi_links:
+            await self.onUploadError('Downloaded! Waiting for other tasks.')
+            return
 
         await self.isOneFile(up_path)
         await self.reName()
@@ -164,14 +172,31 @@ class TaskListener(TaskConfig):
                     continue
 
             up_dir = self.dir
-            self.name = ospath.basename(up_dir)
+            files_in_dir = await listdir(up_dir)
+            if len(files_in_dir) == 1:
+                self.name = files_in_dir[0]
+            else:
+                for f in files_in_dir:
+                    if f.lower().endswith(('.mp4', '.mkv', '.webm')):
+                        self.name = f
+                        break
+                else:
+                    self.name = ospath.basename(up_dir)
             size = await get_path_size(up_dir)
+
+            o_files, m_size = [], []
+            result = await self.proceedSplit(up_dir, m_size, o_files, size, self.gid)
+            if not result:
+                return
+
+            for s in m_size:
+                size -= s
 
             LOGGER.info(f'Leech Name: {self.name}')
             tg = TgUploader(self, up_dir, size)
             async with task_dict_lock:
                 task_dict[self.mid] = TelegramStatus(self, tg, size, self.gid, 'up')
-            await gather(update_status_message(self.message.chat.id), tg.upload([], []))
+            await gather(update_status_message(self.message.chat.id), tg.upload(o_files, m_size))
             return
 
         if not self.compress and not self.extract and not self.vidMode:
