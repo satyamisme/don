@@ -165,25 +165,21 @@ class TaskListener(TaskConfig):
                 await self.onUploadError("No video files found to process.")
                 return
 
-            # Assuming one video file for now, as the old loop overwrites the path
-            processed_path = await process_video(video_files[0], self)
-            if not processed_path:
-                return await self.onUploadError(f"Video processing failed for {video_files[0]}")
+            for video_file in video_files:
+                processed_path = await process_video(video_file, self)
+                if not processed_path:
+                    LOGGER.error(f"Video processing failed for {video_file}")
+                    continue
 
-            up_path = processed_path
-            up_dir, self.name = ospath.split(up_path)
-            size = await get_path_size(up_path)
-
-            o_files, m_size = [], []
-            result = await self.proceedSplit(up_dir, m_size, o_files, size, self.gid)
-            if not result:
-                return
+            up_dir = self.dir
+            self.name = ospath.basename(up_dir)
+            size = await get_path_size(up_dir)
 
             LOGGER.info(f'Leech Name: {self.name}')
             tg = TgUploader(self, up_dir, size)
             async with task_dict_lock:
                 task_dict[self.mid] = TelegramStatus(self, tg, size, self.gid, 'up')
-            await gather(update_status_message(self.message.chat.id), tg.upload(o_files, m_size))
+            await gather(update_status_message(self.message.chat.id), tg.upload([], []))
             return
 
         if not self.compress and not self.extract and not self.vidMode:
