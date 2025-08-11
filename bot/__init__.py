@@ -479,33 +479,28 @@ BUTTON_SIX_URL = environ.get('BUTTON_SIX_URL', '')
 
 
 # =========================== QBITTORRENT ==============================
-BASE_URL_PORT = environ.get('BASE_URL_PORT', '')
-BASE_URL_PORT = 80 if len(BASE_URL_PORT) == 0 else int(BASE_URL_PORT)
+BASE_URL_PORT = _to_int(environ.get('BASE_URL_PORT'), 80)
 
 BASE_URL = environ.get('BASE_URL', '').rstrip("/")
 if len(BASE_URL) == 0:
     BASE_URL = ''
 
-PORT = environ.get('PORT', '')
-PORT = 80 if len(PORT) == 0 else int(PORT)
+PORT = _to_int(environ.get('PORT'), 80)
 
-            
-TORRENT_PORT = environ.get('TORRENT_PORT', '5000')
+TORRENT_PORT = _to_int(environ.get('TORRENT_PORT'), 5000)
 WEB_PINCODE = environ.get('WEB_PINCODE', 'False').lower() == 'true'
 # ======================================================================
 
 
 # =============================== RSS ==================================
-RSS_CHAT = environ.get('RSS_CHAT', '')
-RSS_CHAT = int(RSS_CHAT) if RSS_CHAT.isdigit() or RSS_CHAT.startswith('-') else RSS_CHAT
+RSS_CHAT = _to_int(environ.get('RSS_CHAT'), '')
 
-RSS_DELAY = environ.get('RSS_DELAY', '')
-RSS_DELAY = int(RSS_DELAY) if RSS_DELAY else 900
+RSS_DELAY = _to_int(environ.get('RSS_DELAY'), 900)
 # ======================================================================
 
 
 # ============================ TORSEARCH ===============================
-SEARCH_LIMIT = int(environ.get('SEARCH_LIMIT', 20))
+SEARCH_LIMIT = _to_int(environ.get('SEARCH_LIMIT'), 20)
 SEARCH_API_LINK = environ.get('SEARCH_API_LINK', '').rstrip('/')
 SEARCH_PLUGINS = environ.get('SEARCH_PLUGINS', '')
 # ======================================================================
