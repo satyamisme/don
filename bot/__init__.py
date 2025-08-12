@@ -99,12 +99,6 @@ if not (BOT_TOKEN := environ.get('BOT_TOKEN', '6499364659:AAHMmUxMWag28I9V_9YJBi
 bot_id = BOT_TOKEN.split(':', 1)[0]
 
 if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluster0.vc2htx0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'):
-    if not DATABASE_URL.startswith('mongodb'):
-        try:
-            DATABASE_URL = b64decode(resub('ini|adalah|pesan|yang|sangat|rahasia', '', DATABASE_URL)).decode('utf-8')
-        except (BinasciiError, UnicodeDecodeError):
-            LOGGER.error('DATABASE_URL is not properly encoded. Exiting now.')
-            exit(1)
     try:
         conn = MongoClient(DATABASE_URL)
         db = conn.mltb
@@ -144,12 +138,6 @@ if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluste
         BOT_TOKEN = environ.get('BOT_TOKEN', '')
         bot_id = BOT_TOKEN.split(':', 1)[0]
         if DATABASE_URL := environ.get('DATABASE_URL', ''):
-            if not DATABASE_URL.startswith('mongodb'):
-                try:
-                    DATABASE_URL = b64decode(resub('ini|adalah|pesan|rahasia', '', DATABASE_URL)).decode('utf-8')
-                except (BinasciiError, UnicodeDecodeError):
-                    LOGGER.error('DATABASE_URL is not properly encoded. Exiting now.')
-                    exit(1)
     except errors.InvalidURI as e:
         LOGGER.error('Database URI is invalid: %s', e)
         exit(1)
