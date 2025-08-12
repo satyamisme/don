@@ -10,7 +10,7 @@ from random import choice
 from requests import utils as rutils
 
 from bot import bot, config_dict
-from bot.helper.ext_utils.bot_utils import sync_to_async, new_task, cmd_exec, arg_parser, is_premium_user
+from bot.helper.ext_utils.bot_utils import sync_to_async, new_task, cmd_exec, arg_parser, is_premium_user, get_bulk_and_multi_args
 from bot.helper.ext_utils.commons_check import UseCheck
 from bot.helper.ext_utils.links_utils import is_url, is_magnet, get_stream_link, get_link
 from bot.helper.ext_utils.shortenurl import short_url
@@ -53,23 +53,10 @@ class FastDL(TaskListener):
         args = arg_parser(input_list[1:], arg_base)
 
         self.link = args['link']
-        isBulk = args['-b']
-        bulk_start = bulk_end = 0
-
         try:
-            self.multi = int(args['-i'])
-        except:
-            self. multi = 0
-
-        if not isinstance(isBulk, bool):
-            dargs = isBulk.split(':')
-            bulk_start = dargs[0] or None
-            if len(dargs) == 2:
-                bulk_end = dargs[1] or None
-            isBulk = True
-
-        if config_dict['PREMIUM_MODE'] and not is_premium_user(self.user_id) and (self.multi > 0 or isBulk):
-            await sendMessage(f'Upss {self.tag}, multi/bulk mode for premium user only', self.message)
+            isBulk, bulk_start, bulk_end, self.multi = get_bulk_and_multi_args(args, self.user_id)
+        except ValueError as e:
+            await sendMessage(str(e), self.message)
             return
 
         if isBulk:

@@ -9,7 +9,7 @@ from secrets import token_urlsafe
 from urllib.parse import urlparse
 
 from bot import bot, task_dict, task_dict_lock, config_dict, LOGGER
-from bot.helper.ext_utils.bot_utils import is_premium_user, sync_to_async, new_task, cmd_exec, arg_parser
+from bot.helper.ext_utils.bot_utils import is_premium_user, sync_to_async, new_task, cmd_exec, arg_parser, get_bulk_and_multi_args
 from bot.helper.ext_utils.commons_check import UseCheck
 from bot.helper.ext_utils.exceptions import DirectDownloadLinkException
 from bot.helper.ext_utils.help_messages import HelpString
@@ -62,23 +62,10 @@ class Clone(TaskListener):
         self.upDest = args['-up']
         self.isRename = self.newname
 
-        isBulk = args['-b']
-        bulk_start = bulk_end = 0
-
         try:
-            self.multi = int(args['-i'])
-        except:
-            self.multi = 0
-
-        if not isinstance(isBulk, bool):
-            dargs = isBulk.split(':')
-            bulk_start = dargs[0] or None
-            if len(dargs) == 2:
-                bulk_end = dargs[1] or None
-            isBulk = True
-
-        if config_dict['PREMIUM_MODE'] and not is_premium_user(self.user_id) and (self.multi > 0 or isBulk):
-            await sendMessage('Upss, multi/bulk mode for premium user only', self.message)
+            isBulk, bulk_start, bulk_end, self.multi = get_bulk_and_multi_args(args, self.user_id)
+        except ValueError as e:
+            await sendMessage(str(e), self.message)
             return
 
         if isBulk:

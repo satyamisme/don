@@ -10,7 +10,7 @@ from re import match as re_match
 from urllib.parse import urlparse
 
 from bot import bot, config_dict, LOGGER
-from bot.helper.ext_utils.bot_utils import get_content_type, is_premium_user, sync_to_async, new_task, arg_parser
+from bot.helper.ext_utils.bot_utils import get_content_type, is_premium_user, sync_to_async, new_task, arg_parser, get_bulk_and_multi_args
 from bot.helper.ext_utils.commons_check import UseCheck
 from bot.helper.ext_utils.conf_loads import intialize_savebot
 from bot.helper.ext_utils.exceptions import DirectDownloadLinkException
@@ -102,15 +102,14 @@ class Mirror(TaskListener):
 
         folder_name = args['-m'].replace('/', '')
         headers = args['-h']
-        isBulk = args['-b']
         vidTool = args['-vt'] or self.isLeech
         file_ = ratio = seed_time = None
-        bulk_start = bulk_end = 0
 
         try:
-            self.multi = int(args['-i'])
-        except:
-            self.multi = 0
+            isBulk, bulk_start, bulk_end, self.multi = get_bulk_and_multi_args(args, self.user_id)
+        except ValueError as e:
+            await sendMessage(str(e), self.message)
+            return
 
         if not isinstance(self.seed, bool):
             dargs = self.seed.split(':')
@@ -118,17 +117,6 @@ class Mirror(TaskListener):
             if len(dargs) == 2:
                 seed_time = dargs[1] or None
             self.seed = True
-
-        if not isinstance(isBulk, bool):
-            dargs = isBulk.split(':')
-            bulk_start = dargs[0] or None
-            if len(dargs) == 2:
-                bulk_end = dargs[1] or None
-            isBulk = True
-
-        if config_dict['PREMIUM_MODE'] and not is_premium_user(self.user_id) and (self.multi > 0 or isBulk):
-            await sendMessage(f'Upss {self.tag}, multi/bulk mode for premium user only', self.message)
-            return
 
         if not isBulk:
             if folder_name:

@@ -1,6 +1,6 @@
 from aiofiles.os import makedirs
 from asyncio import gather
-from hashlib import md5, sha1, sha224, sha256, sha512, sha384
+from hashlib import new as hashlib_new, sha224, sha256, sha512, sha384
 from os import path as ospath
 from pyrogram.filters import command
 from pyrogram.handlers import MessageHandler
@@ -46,7 +46,7 @@ async def hasher(_, message: Message):
         await gather(clean_target('hash'), editMessage('Error when downloading. Try again later.', hmsg))
         return
     try:
-        hash_md5, hash_sha1, hash_sha224, hash_sha256, hash_sha512, hash_sha384 = md5(), sha1(), sha224(), sha256(), sha512(), sha384()
+        hash_md5, hash_sha1, hash_sha224, hash_sha256, hash_sha512, hash_sha384 = hashlib_new('md5', usedforsecurity=False), hashlib_new('sha1', usedforsecurity=False), sha224(), sha256(), sha512(), sha384()
         with open(outpath, 'rb') as f:
             while chunk := f.read(8192):
                 hash_md5.update(chunk)
