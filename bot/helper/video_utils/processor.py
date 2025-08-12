@@ -10,6 +10,7 @@ import asyncio
 import json
 from time import time
 import os.path as ospath
+from aiofiles.os import rename as aiorename
 
 async def get_media_info(path):
     """Get media information using ffprobe."""
@@ -106,14 +107,19 @@ async def process_video(path, listener):
         return None
 
     base_name, _ = path.rsplit('.', 1)
-    output_path = f"{base_name}.mkv"
+    # Use a temporary output path to avoid overwriting the input file
+    output_path = f"{base_name}.processed.mkv"
 
     command = build_ffmpeg_command(path, output_path)
 
     processed_path = await run_ffmpeg(command, path, listener)
 
     if processed_path:
-        processed_media_info = await get_media_info(processed_path)
+        # Rename the processed file to its final name
+        final_path = processed_path.replace('.processed.mkv', '.mkv')
+        await aiorename(processed_path, final_path)
+
+        processed_media_info = await get_media_info(final_path)
         if not processed_media_info:
             await listener.onUploadError("Could not get media info from the processed file.")
             listener.streams_kept = []
@@ -132,8 +138,9 @@ async def process_video(path, listener):
             listener.streams_kept = [s for s in kept_streams if not s.get('disposition', {}).get('attached_pic')]
 
         await clean_target(path)
+        return final_path
 
-    return processed_path
+    return None
 
 async def get_metavideo(url):
     """Get media metadata from a URL using ffprobe."""
