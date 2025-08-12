@@ -212,3 +212,27 @@ def new_thread(func):
         future = run_coroutine_threadsafe(func(*args, **kwargs), bot_loop)
         return future.result() if wait else future
     return wrapper
+
+
+def get_bulk_and_multi_args(args, user_id):
+    isBulk = args.get('-b', False)
+    bulk_start = 0
+    bulk_end = 0
+    multi = 0
+
+    try:
+        multi = int(args.get('-i', 0))
+    except:
+        multi = 0
+
+    if not isinstance(isBulk, bool):
+        dargs = isBulk.split(':')
+        bulk_start = dargs[0] or 0
+        if len(dargs) == 2:
+            bulk_end = dargs[1] or 0
+        isBulk = True
+
+    if config_dict['PREMIUM_MODE'] and not is_premium_user(user_id) and (multi > 0 or isBulk):
+        raise ValueError('Upss, multi/bulk mode for premium user only')
+
+    return isBulk, bulk_start, bulk_end, multi

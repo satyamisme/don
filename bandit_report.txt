@@ -1,0 +1,1332 @@
+Working... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:05
+Run started:2025-08-12 07:02:40.032555
+
+Test results:
+>> Issue: [B404:blacklist] Consider possible security implications associated with the subprocess module.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_imports.html#b404-import-subprocess
+   Location: bot/__init__.py:14:0
+13	from socket import setdefaulttimeout
+14	from subprocess import Popen, run as srun, check_output
+15	from sys import exit
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: ''
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b106_hardcoded_password_funcarg.html
+   Location: bot/__init__.py:43:16
+42
+43	aria2 = ariaAPI(ariaClient(host='http://localhost', port=6800, secret=''))
+44
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/__init__.py:104:8
+103	            DATABASE_URL = b64decode(resub('ini|adalah|pesan|yang|sangat|rahasia', '', DATABASE_URL)).decode('utf-8')
+104	        except:
+105	            pass
+106	    try:
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b607_start_process_with_partial_path.html
+   Location: bot/__init__.py:130:24
+129	                    if file_ == 'cfg.zip':
+130	                        srun(['rm', '-rf', '/JDownloader/cfg'])
+131	                        srun(['7z', 'x', 'cfg.zip', '-o/JDownloader'])
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: bot/__init__.py:130:24
+129	                    if file_ == 'cfg.zip':
+130	                        srun(['rm', '-rf', '/JDownloader/cfg'])
+131	                        srun(['7z', 'x', 'cfg.zip', '-o/JDownloader'])
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b607_start_process_with_partial_path.html
+   Location: bot/__init__.py:131:24
+130	                        srun(['rm', '-rf', '/JDownloader/cfg'])
+131	                        srun(['7z', 'x', 'cfg.zip', '-o/JDownloader'])
+132	                        osremove('cfg.zip')
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: bot/__init__.py:131:24
+130	                        srun(['rm', '-rf', '/JDownloader/cfg'])
+131	                        srun(['7z', 'x', 'cfg.zip', '-o/JDownloader'])
+132	                        osremove('cfg.zip')
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/__init__.py:148:16
+147	                    DATABASE_URL = b64decode(resub('ini|adalah|pesan|rahasia', '', DATABASE_URL)).decode('utf-8')
+148	                except:
+149	                    pass
+150	    except Exception as e:
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: ''
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/__init__.py:323:20
+322	    MEGA_EMAIL = ''
+323	    MEGA_PASSWORD = ''
+324
+
+--------------------------------------------------
+>> Issue: [B602:subprocess_popen_with_shell_equals_true] subprocess call with shell=True identified, security issue.
+   Severity: High   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b602_subprocess_popen_with_shell_equals_true.html
+   Location: bot/__init__.py:762:0
+761	PORT = environ.get('PORT')
+762	Popen(f"gunicorn web.wserver:app --bind 0.0.0.0:{PORT} --worker-class gevent", shell=True)
+763
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: bot/__init__.py:764:0
+763
+764	srun([QBIT_NAME, '-d', f'--profile={getcwd()}'], check=True)
+765	if not ospath.exists('.netrc'):
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b607_start_process_with_partial_path.html
+   Location: bot/__init__.py:768:0
+767	        pass
+768	srun('chmod 600 .netrc && cp .netrc /root/.netrc', shell=True)
+769	trackers = check_output("curl -Ns https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/all.txt https://ngosang.github.io/trackerslist/trackers_all_http.txt https://newtrackon.com/api/all https://raw.githubusercontent.com/hezhijie0327/Trackerslist/main/trackerslist_tracker.txt | awk '$0' | tr '\n\n' ','", shell=True).decode('utf-8').rstrip(',')
+
+--------------------------------------------------
+>> Issue: [B602:subprocess_popen_with_shell_equals_true] subprocess call with shell=True seems safe, but may be changed in the future, consider rewriting without shell
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b602_subprocess_popen_with_shell_equals_true.html
+   Location: bot/__init__.py:768:0
+767	        pass
+768	srun('chmod 600 .netrc && cp .netrc /root/.netrc', shell=True)
+769	trackers = check_output("curl -Ns https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/all.txt https://ngosang.github.io/trackerslist/trackers_all_http.txt https://newtrackon.com/api/all https://raw.githubusercontent.com/hezhijie0327/Trackerslist/main/trackerslist_tracker.txt | awk '$0' | tr '\n\n' ','", shell=True).decode('utf-8').rstrip(',')
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b607_start_process_with_partial_path.html
+   Location: bot/__init__.py:769:11
+768	srun('chmod 600 .netrc && cp .netrc /root/.netrc', shell=True)
+769	trackers = check_output("curl -Ns https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/all.txt https://ngosang.github.io/trackerslist/trackers_all_http.txt https://newtrackon.com/api/all https://raw.githubusercontent.com/hezhijie0327/Trackerslist/main/trackerslist_tracker.txt | awk '$0' | tr '\n\n' ','", shell=True).decode('utf-8').rstrip(',')
+770	with open('a2c.conf', 'a+') as a:
+
+--------------------------------------------------
+>> Issue: [B602:subprocess_popen_with_shell_equals_true] subprocess call with shell=True seems safe, but may be changed in the future, consider rewriting without shell
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b602_subprocess_popen_with_shell_equals_true.html
+   Location: bot/__init__.py:769:11
+768	srun('chmod 600 .netrc && cp .netrc /root/.netrc', shell=True)
+769	trackers = check_output("curl -Ns https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/all.txt https://ngosang.github.io/trackerslist/trackers_all_http.txt https://newtrackon.com/api/all https://raw.githubusercontent.com/hezhijie0327/Trackerslist/main/trackerslist_tracker.txt | awk '$0' | tr '\n\n' ','", shell=True).decode('utf-8').rstrip(',')
+770	with open('a2c.conf', 'a+') as a:
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: bot/__init__.py:774:0
+773	    a.write(f'bt-tracker=[{trackers}]')
+774	srun([ARIA_NAME, f'--conf-path={ospath.join(getcwd(), "a2c.conf")}'], check=True)
+775	alive = Popen(["python3", "alive.py"])
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b607_start_process_with_partial_path.html
+   Location: bot/__init__.py:775:8
+774	srun([ARIA_NAME, f'--conf-path={ospath.join(getcwd(), "a2c.conf")}'], check=True)
+775	alive = Popen(["python3", "alive.py"])
+776	sleep(0.5)
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: bot/__init__.py:775:8
+774	srun([ARIA_NAME, f'--conf-path={ospath.join(getcwd(), "a2c.conf")}'], check=True)
+775	alive = Popen(["python3", "alive.py"])
+776	sleep(0.5)
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b607_start_process_with_partial_path.html
+   Location: bot/__init__.py:779:8
+778	    if ospath.exists('accounts'):
+779	        srun(['rm', '-rf', 'accounts'], check=True)
+780	    srun('7z x -o. -aoa accounts.zip accounts/*.json && chmod -R 777 accounts', shell=True)
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: bot/__init__.py:779:8
+778	    if ospath.exists('accounts'):
+779	        srun(['rm', '-rf', 'accounts'], check=True)
+780	    srun('7z x -o. -aoa accounts.zip accounts/*.json && chmod -R 777 accounts', shell=True)
+
+--------------------------------------------------
+>> Issue: [B609:linux_commands_wildcard_injection] Possible wildcard injection in call: subprocess.run
+   Severity: High   Confidence: Medium
+   CWE: CWE-155 (https://cwe.mitre.org/data/definitions/155.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b609_linux_commands_wildcard_injection.html
+   Location: bot/__init__.py:780:4
+779	        srun(['rm', '-rf', 'accounts'], check=True)
+780	    srun('7z x -o. -aoa accounts.zip accounts/*.json && chmod -R 777 accounts', shell=True)
+781	    osremove('accounts.zip')
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b607_start_process_with_partial_path.html
+   Location: bot/__init__.py:780:4
+779	        srun(['rm', '-rf', 'accounts'], check=True)
+780	    srun('7z x -o. -aoa accounts.zip accounts/*.json && chmod -R 777 accounts', shell=True)
+781	    osremove('accounts.zip')
+
+--------------------------------------------------
+>> Issue: [B602:subprocess_popen_with_shell_equals_true] subprocess call with shell=True seems safe, but may be changed in the future, consider rewriting without shell
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b602_subprocess_popen_with_shell_equals_true.html
+   Location: bot/__init__.py:780:4
+779	        srun(['rm', '-rf', 'accounts'], check=True)
+780	    srun('7z x -o. -aoa accounts.zip accounts/*.json && chmod -R 777 accounts', shell=True)
+781	    osremove('accounts.zip')
+
+--------------------------------------------------
+>> Issue: [B606:start_process_with_no_shell] Starting a process without a shell.
+   Severity: Low   Confidence: Medium
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b606_start_process_with_no_shell.html
+   Location: bot/__main__.py:197:8
+196	            await f.write(f'{msg.chat.id}\n{msg.id}\n')
+197	        osexecl(executable, executable, '-m', 'bot')
+198
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/common.py:224:12
+223	                await self.message.unpin()
+224	            except:
+225	                pass
+226	        reply = self.message.reply_to_message
+
+--------------------------------------------------
+>> Issue: [B104:hardcoded_bind_all_interfaces] Possible binding to all interfaces.
+   Severity: Medium   Confidence: Medium
+   CWE: CWE-605 (https://cwe.mitre.org/data/definitions/605.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b104_hardcoded_bind_all_interfaces.html
+   Location: bot/helper/ext_utils/argo_tunnel.py:30:38
+29	            await server.setup()
+30	            await web.TCPSite(server, '0.0.0.0', PORT).start()
+31	            LOGGER.info('Ping server running on PORT: %s', PORT)
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/ext_utils/bot_utils.py:103:4
+102	        message = await bot.get_messages(message.chat.id, message.id)
+103	    except:
+104	        pass
+105	    else:
+
+--------------------------------------------------
+>> Issue: [B404:blacklist] Consider possible security implications associated with the subprocess module.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_imports.html#b404-import-subprocess
+   Location: bot/helper/ext_utils/files_utils.py:8:0
+7	from re import split as re_split, search as re_search, escape, I
+8	from subprocess import run as srun
+9	from sys import exit as sexit
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b607_start_process_with_partial_path.html
+   Location: bot/helper/ext_utils/files_utils.py:70:8
+69	        clean_all()
+70	        srun(['pkill', '-9', '-f', f'gunicorn|{ARIA_NAME}|{QBIT_NAME}|{FFMPEG_NAME}|gclone|java|alass'], check=True)
+71	        sexit(0)
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: bot/helper/ext_utils/files_utils.py:70:8
+69	        clean_all()
+70	        srun(['pkill', '-9', '-f', f'gunicorn|{ARIA_NAME}|{QBIT_NAME}|{FFMPEG_NAME}|gclone|java|alass'], check=True)
+71	        sexit(0)
+
+--------------------------------------------------
+>> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html
+   Location: bot/helper/ext_utils/help_messages.py:108:17
+107
+108	    EXTRAML = [f'/{BotCommands.BtSelectCommand}: Select files from torrents by gid or reply.',
+109	               f'/{BotCommands.CancelTaskCommand}: Cancel task by gid or reply.']
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: '
+<b>This link requires a password!</b>
+- Insert <b>::</b> after the link and write the password after the sign.
+
+<b>Example:</b> link::my password
+'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/ext_utils/help_messages.py:159:29
+158
+159	    PASSWORD_ERROR_MESSAGE = '''
+160	<b>This link requires a password!</b>
+161	- Insert <b>::</b> after the link and write the password after the sign.
+162
+163	<b>Example:</b> link::my password
+164	'''
+165
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: ''
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/ext_utils/index_scrape.py:10:18
+9	next_page = False
+10	next_page_token = ''
+11
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: ''
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/ext_utils/jdownloader_booter.py:17:25
+16	        self._username = ''
+17	        self._password = ''
+18	        self._device_name = ''
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/ext_utils/jdownloader_booter.py:38:102
+37	        bot_name = bot.me.username
+38	        self._device_name = f'{bot_name.replace(re_search(r"(bot|_bot)$", bot_name, I).group(), "_")}{randint(0, 100)}'
+39	        if await aiopath.exists('/JDownloader/logs') and len(await listdir('/JDownloader/logs')) > 2:
+
+--------------------------------------------------
+>> Issue: [B604:any_other_function_with_shell_equals_true] Function call with shell=True parameter identified, possible security issue.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b604_any_other_function_with_shell_equals_true.html
+   Location: bot/helper/ext_utils/jdownloader_booter.py:55:33
+54	        cmd = 'java -Dsun.jnu.encoding=UTF-8 -Dfile.encoding=UTF-8 -Djava.awt.headless=true -jar /JDownloader/JDownloader.jar'
+55	        _, stdrerr, code = await cmd_exec(cmd, shell=True)
+56	        if code != -9:
+
+--------------------------------------------------
+>> Issue: [B112:try_except_continue] Try, Except, Continue detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html
+   Location: bot/helper/ext_utils/jdownloader_booter.py:98:12
+97	                    continue
+98	            except:
+99	                continue
+100	            break
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/ext_utils/media_utils.py:98:8
+97	                img_post = ipost
+98	        except:
+99	            pass
+100	    try:
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/ext_utils/media_utils.py:321:16
+320	                    self._eta = (self._duration / float(progress['speed'].strip('x'))) - ((time() - start_time))
+321	                except:
+322	                    pass
+323
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/ext_utils/shortenurl.py:20:68
+19	        url = quote(b64encode(longurl.encode('utf-8')))
+20	        linkvertise_urls = [f'https://link-to.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
+21	                            f'https://up-to-down.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/ext_utils/shortenurl.py:21:71
+20	        linkvertise_urls = [f'https://link-to.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
+21	                            f'https://up-to-down.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
+22	                            f'https://direct-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/ext_utils/shortenurl.py:22:72
+21	                            f'https://up-to-down.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
+22	                            f'https://direct-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
+23	                            f'https://file-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}']
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/ext_utils/shortenurl.py:23:70
+22	                            f'https://direct-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
+23	                            f'https://file-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}']
+24	        return choice(linkvertise_urls)
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/ext_utils/shortenurl.py:24:15
+23	                            f'https://file-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}']
+24	        return choice(linkvertise_urls)
+25
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/ext_utils/shortenurl.py:37:44
+36	    for _ in range(4 - attempt):
+37	        i = 0 if len(SHORTENERES) == 1 else randrange(len(SHORTENERES))
+38	        _shortener = SHORTENERES[i].strip()
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/ext_utils/status_utils.py:176:16
+175	                    msg += f'\n<b>├ S/L:</b> {task.seeders_num()}/{task.leechers_num()}'
+176	                except:
+177	                    pass
+178	        elif tstatus == MirrorStatus.STATUS_SEEDING:
+
+--------------------------------------------------
+>> Issue: [B112:try_except_continue] Try, Except, Continue detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html
+   Location: bot/helper/listeners/jdownloader_listener.py:31:12
+30	                packages = await sync_to_async(jdownloader.device.downloads.query_packages, [{'finished': True}])
+31	            except:
+32	                continue
+33	            finished = [pack['uuid'] for pack in packages if pack.get('finished', False)]
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/listeners/tasks_listener.py:49:8
+48	            await gather(sync_to_async(aria2.purge), delete_status())
+49	        except:
+50	            pass
+51
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/listeners/tasks_listener.py:258:17
+257	        reply_to = self.message.reply_to_message
+258	        images = choice(config_dict['IMAGE_COMPLETE'].split())
+259	        TIME_ZONE_TITLE = config_dict['TIME_ZONE_TITLE']
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/listeners/tasks_listener.py:555:52
+554	        else:
+555	            await sendingMessage(msg, self.message, choice(config_dict['IMAGE_COMPLETE'].split()))
+556
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/listeners/tasks_listener.py:629:48
+628	                buttons.button_data('Save Message', 'save', 'footer')
+629	        await sendingMessage(msg, self.message, choice(config_dict['IMAGE_COMPLETE'].split()), buttons.build_menu(1))
+630
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b113_request_without_timeout.html
+   Location: bot/helper/mirror_utils/download_utils/direct_link_generator.py:149:16
+148	                'maxTimeout': 60000}
+149	        _json = rpost('https://cf.jmdkh.eu.org/v1', headers={'Content-Type': 'application/json'}, json=data).json()
+150	        if _json['status'] == 'ok':
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: ''
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/mirror_utils/download_utils/direct_link_generator.py:330:20
+329	    else:
+330	        _password = ''
+331	    file_id = url.split("/")[-1]
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: ''
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/mirror_utils/download_utils/direct_link_generator.py:434:24
+433	        else:
+434	            _password = ""
+435	        _id = url.split("/")[-1]
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/mirror_utils/download_utils/direct_link_generator.py:620:8
+619	                return _singleItem(session, data['itemId'])
+620	        except:
+621	            pass
+622	        if not details['title']:
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: ''
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/mirror_utils/download_utils/direct_link_generator.py:846:20
+845	    else:
+846	        _password = ''
+847	    _passwordNeed = False
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/mirror_utils/download_utils/direct_link_generator.py:902:8
+901	                return _res.headers['Location']
+902	        except:
+903	            pass
+904
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/mirror_utils/download_utils/telegram_download.py:68:12
+67	                GLOBAL_GID.remove(self._id)
+68	            except:
+69	                pass
+70	        await self._listener.onDownloadError(error, listfile)
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/mirror_utils/download_utils/yt_dlp_download.py:128:12
+127	                self._progress = (self._downloaded_bytes / self._size) * 100
+128	            except:
+129	                pass
+130
+
+--------------------------------------------------
+>> Issue: [B307:blacklist] Use of possibly insecure function - consider using safer ast.literal_eval.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b307-eval
+   Location: bot/helper/mirror_utils/gdrive_utlis/clone.py:108:25
+107	            if err.resp.get('content-type', '').startswith('application/json'):
+108	                reason = eval(err.content).get('error').get('errors')[0].get('reason')
+109	                if reason not in ['userRateLimitExceeded', 'dailyLimitExceeded', 'cannotCopyFile']:
+
+--------------------------------------------------
+>> Issue: [B307:blacklist] Use of possibly insecure function - consider using safer ast.literal_eval.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b307-eval
+   Location: bot/helper/mirror_utils/gdrive_utlis/download.py:113:29
+112	                if err.resp.get('content-type', '').startswith('application/json'):
+113	                    reason = eval(err.content).get('error').get('errors')[0].get('reason')
+114	                    if reason not in ('downloadQuotaExceeded', 'dailyLimitExceeded'):
+
+--------------------------------------------------
+>> Issue: [B403:blacklist] Consider possible security implications associated with load module.
+   Severity: Low   Confidence: High
+   CWE: CWE-502 (https://cwe.mitre.org/data/definitions/502.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_imports.html#b403-import-pickle
+   Location: bot/helper/mirror_utils/gdrive_utlis/helper.py:5:0
+4	from os import path as ospath, listdir
+5	from pickle import load as pload
+6	from random import randrange
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'token.pickle'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/mirror_utils/gdrive_utlis/helper.py:19:26
+18	        self._OAUTH_SCOPE = ['https://www.googleapis.com/auth/drive']
+19	        self.token_path = 'token.pickle'
+20	        self.G_DRIVE_DIR_MIME_TYPE = 'application/vnd.google-apps.folder'
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/mirror_utils/gdrive_utlis/helper.py:64:28
+63	            self.sa_number = len(json_files)
+64	            self.sa_index = randrange(self.sa_number)
+65	            LOGGER.info('Authorizing with %s service account', json_files[self.sa_index])
+
+--------------------------------------------------
+>> Issue: [B301:blacklist] Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue.
+   Severity: Medium   Confidence: High
+   CWE: CWE-502 (https://cwe.mitre.org/data/definitions/502.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b301-pickle
+   Location: bot/helper/mirror_utils/gdrive_utlis/helper.py:70:30
+69	            with open(self.token_path, 'rb') as f:
+70	                credentials = pload(f)
+71	        else:
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'token.pickle'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/mirror_utils/gdrive_utlis/list.py:203:34
+202	            if self._token_owner:
+203	                self.token_path = 'token.pickle'
+204	                self.use_sa = False
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'accounts'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/mirror_utils/gdrive_utlis/list.py:209:34
+208	            else:
+209	                self.token_path = 'accounts'
+210	                self.use_sa = True
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'accounts'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/mirror_utils/gdrive_utlis/list.py:237:45
+236	            self.token_path = token_path
+237	            self.use_sa = self.token_path == 'accounts'
+238	            await self.list_drives()
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'token.pickle'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/mirror_utils/gdrive_utlis/list.py:310:29
+309	        case 'owner':
+310	            obj.token_path = 'token.pickle'
+311	            obj.use_sa = False
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'accounts'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html
+   Location: bot/helper/mirror_utils/gdrive_utlis/list.py:322:29
+321	        case 'sa':
+322	            obj.token_path = 'accounts'
+323	            obj.use_sa = True
+
+--------------------------------------------------
+>> Issue: [B307:blacklist] Use of possibly insecure function - consider using safer ast.literal_eval.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b307-eval
+   Location: bot/helper/mirror_utils/gdrive_utlis/upload.py:145:29
+144	                if err.resp.get('content-type', '').startswith('application/json'):
+145	                    reason = eval(err.content).get('error').get('errors')[0].get('reason')
+146	                    if reason not in ('userRateLimitExceeded', 'dailyLimitExceeded'):
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/mirror_utils/rclone_utils/serve.py:17:8
+16	            RcloneServe.clear()
+17	        except:
+18	            pass
+19	    RCLONE_SERVE_PORT = config_dict['RCLONE_SERVE_PORT']
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/mirror_utils/rclone_utils/serve.py:37:8
+36	            RcloneServe.clear()
+37	        except:
+38	            pass
+39	    cmd = ['gclone', 'serve', 'http', '--config', 'rclone.conf', 'combine:', '--addr', f':{RCLONE_SERVE_PORT}',
+
+--------------------------------------------------
+>> Issue: [B112:try_except_continue] Try, Except, Continue detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html
+   Location: bot/helper/mirror_utils/rclone_utils/transfer.py:57:12
+56	                data = (await self._proc.stdout.readline()).decode()
+57	            except:
+58	                continue
+59	            if not data:
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/mirror_utils/rclone_utils/transfer.py:132:33
+131	                self._sa_number = len(sa_files)
+132	                self._sa_index = randrange(self._sa_number)
+133	                remote = f'sa{self._sa_index:03}'
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/helper/mirror_utils/rclone_utils/transfer.py:220:33
+219	                self._sa_number = len(sa_files)
+220	                self._sa_index = randrange(self._sa_number)
+221	                fremote = f'sa{self._sa_index:03}'
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/mirror_utils/rclone_utils/transfer.py:352:12
+351	                self._proc.kill()
+352	            except:
+353	                pass
+354	        if self._is_download:
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b113_request_without_timeout.html
+   Location: bot/helper/mirror_utils/upload_utils/gofile_uploader.py:67:15
+66	        monitor = MultipartEncoderMonitor(mpart, self._callback)
+67	        resp = rpost(f'https://store{self._server}.gofile.io/uploadFile', data=monitor, headers={'Content-Type': monitor.content_type}).json()
+68	        self._temp_size = self.uploaded_bytes
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/stream_utils/custom_dl.py:50:8
+49	            LOGGER.error(e, exc_info=True)
+50	        except Exception:
+51	            pass
+52
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/helper/stream_utils/stream_routes.py:34:12
+33	                path = b64decode(path).decode('utf8')
+34	            except:
+35	                pass
+36	            return web.Response(text=await render_page(None, mime_type, ddl=path), content_type='text/html')
+
+--------------------------------------------------
+>> Issue: [B104:hardcoded_bind_all_interfaces] Possible binding to all interfaces.
+   Severity: Medium   Confidence: Medium
+   CWE: CWE-605 (https://cwe.mitre.org/data/definitions/605.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b104_hardcoded_bind_all_interfaces.html
+   Location: bot/helper/stream_utils/web_services.py:22:34
+21	        await server.setup()
+22	        await web.TCPSite(server, '0.0.0.0', 40065).start()
+
+--------------------------------------------------
+>> Issue: [B404:blacklist] Consider possible security implications associated with the subprocess module.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_imports.html#b404-import-subprocess
+   Location: bot/helper/video_utils/processor.py:13:0
+12	import asyncio
+13	import subprocess
+14	import json
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/backup.py:148:68
+147	            f'<b>└ Time Taken:</b> {get_readable_time(time() - message.date.timestamp())}')
+148	    await gather(deleteMessage(cmsg), sendingMessage(text, message, choice(config_dict['IMAGE_COMPLETE'].split())))
+149
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/bypass.py:132:67
+131	                await deleteMessage(self.editable)
+132	                self.editable = await sendPhoto(msg, self.message, choice(config_dict['IMAGE_COMPLETE'].split()), buttons.build_menu(1))
+133	        else:
+
+--------------------------------------------------
+>> Issue: [B102:exec_used] Use of exec detected.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b102_exec_used.html
+   Location: bot/modules/exec.py:78:12
+77	        if func == 'exec':
+78	            exec(f"def func():\n{indent(body, '  ')}", env)
+79	        else:
+
+--------------------------------------------------
+>> Issue: [B102:exec_used] Use of exec detected.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b102_exec_used.html
+   Location: bot/modules/exec.py:80:12
+79	        else:
+80	            exec(f"async def func():\n{indent(body, '  ')}", env)
+81	    except Exception as e:
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/modules/exec.py:101:16
+100	                    result = f'{repr(await sync_to_async(eval, body, env))}'
+101	                except:
+102	                    pass
+103	        else:
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/fast_download.py:133:95
+132	                buttons.button_link('Source Link', self.link)
+133	        _, msg = await gather(deleteMessage(self.editable), sendingMessage(text, self.message, choice(config_dict['IMAGE_COMPLETE'].split()), buttons.build_menu(2)))
+134	        if self.isSuperChat and self.user_dict.get('enable_pm'):
+
+--------------------------------------------------
+>> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html
+   Location: bot/modules/file_selector.py:50:14
+49	            "Reply to an active /cmd which was used to start the download or add gid along with cmd\n\n"
+50	            + "This command mainly for selection incase you decided to select files from already added torrent/nzb. "
+51	            + "But you can always use /cmd with arg `s` to select files before download start."
+52	        )
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/modules/file_selector.py:141:32
+140	                                    await remove(f_path)
+141	                                except:
+142	                                    pass
+143	                if not task.queued:
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/modules/file_selector.py:153:24
+152	                            await remove(f["path"])
+153	                        except:
+154	                            pass
+155	                if not task.queued:
+
+--------------------------------------------------
+>> Issue: [B404:blacklist] Consider possible security implications associated with the subprocess module.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_imports.html#b404-import-subprocess
+   Location: bot/modules/func.py:22:0
+21	from re import findall as refindall, search as re_search
+22	from subprocess import run as srun, check_output as scheck_output
+23	from aiofiles.os import remove as aioremove, path as aiopath, mkdir
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/modules/func.py:215:4
+214	        await bot.copy_message(chat_id=chat_id, from_chat_id=from_chat_id, message_id=message_id)
+215	    except:
+216	        pass
+217
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/func.py:230:25
+229	            if photo and config_dict['IMAGES']:
+230	                IMAGES = choice(config_dict['IMAGES'])
+231	                await bot.send_photo(chat_id, IMAGES, text, reply_markup=buttons)
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/func.py:240:75
+239	            if photo and config_dict['IMAGES']:
+240	                return await bot.send_photo(chat_id=message.chat.id, photo=choice(config_dict['IMAGES']), caption=text, reply_to_message_id=message.id, reply_markup=buttons)
+241	            else:
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/func.py:342:45
+341	        return longurl
+342	    i = 0 if len(shorteneres_list) == 1 else randrange(len(shorteneres_list))
+343	    _shorten_dict = shorteneres_list[i]
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/func.py:356:56
+355	            linkvertise = [
+356	                f"https://link-to.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}",
+357	                f"https://up-to-down.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}",
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/func.py:357:59
+356	                f"https://link-to.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}",
+357	                f"https://up-to-down.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}",
+358	                f"https://direct-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}",
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/func.py:358:60
+357	                f"https://up-to-down.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}",
+358	                f"https://direct-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}",
+359	                f"https://file-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}"]
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/func.py:359:58
+358	                f"https://direct-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}",
+359	                f"https://file-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}"]
+360	            return choice(linkvertise)
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/func.py:360:19
+359	                f"https://file-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}"]
+360	            return choice(linkvertise)
+361	        elif "bitly.com" in _shortener:
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/gd_count.py:57:50
+56	            buttons.button_link('Source', get_link(message))
+57	        msg = await sendingMessage(text, message, choice(config_dict['IMAGE_COMPLETE'].split()), buttons.build_menu(2))
+58	        if STICKERID_COUNT := config_dict['STICKERID_COUNT']:
+
+--------------------------------------------------
+>> Issue: [B307:blacklist] Use of possibly insecure function - consider using safer ast.literal_eval.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b307-eval
+   Location: bot/modules/gd_search.py:68:31
+67	        await query.answer()
+68	        isRecursive = not bool(eval(data[3]))
+69	        buttons = await list_buttons(user_id, isRecursive, eval(data[4]))
+
+--------------------------------------------------
+>> Issue: [B307:blacklist] Use of possibly insecure function - consider using safer ast.literal_eval.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b307-eval
+   Location: bot/modules/gd_search.py:69:59
+68	        isRecursive = not bool(eval(data[3]))
+69	        buttons = await list_buttons(user_id, isRecursive, eval(data[4]))
+70	        return await editMessage(message, "Choose list options:", buttons)
+
+--------------------------------------------------
+>> Issue: [B307:blacklist] Use of possibly insecure function - consider using safer ast.literal_eval.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b307-eval
+   Location: bot/modules/gd_search.py:73:30
+72	        await query.answer()
+73	        user_token = not bool(eval(data[4]))
+74	        buttons = await list_buttons(user_id, eval(data[3]), user_token)
+
+--------------------------------------------------
+>> Issue: [B307:blacklist] Use of possibly insecure function - consider using safer ast.literal_eval.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b307-eval
+   Location: bot/modules/gd_search.py:74:46
+73	        user_token = not bool(eval(data[4]))
+74	        buttons = await list_buttons(user_id, eval(data[3]), user_token)
+75	        return await editMessage(message, "Choose list options:", buttons)
+
+--------------------------------------------------
+>> Issue: [B307:blacklist] Use of possibly insecure function - consider using safer ast.literal_eval.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b307-eval
+   Location: bot/modules/gd_search.py:81:18
+80	    item_type = data[2]
+81	    isRecursive = eval(data[3])
+82	    user_token = eval(data[4])
+
+--------------------------------------------------
+>> Issue: [B307:blacklist] Use of possibly insecure function - consider using safer ast.literal_eval.
+   Severity: Medium   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b307-eval
+   Location: bot/modules/gd_search.py:82:17
+81	    isRecursive = eval(data[3])
+82	    user_token = eval(data[4])
+83	    await editMessage(message, f"<b>Searching for <i>{key}</i></b>")
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b324_hashlib.html
+   Location: bot/modules/hash.py:49:82
+48	    try:
+49	        hash_md5, hash_sha1, hash_sha224, hash_sha256, hash_sha512, hash_sha384 = md5(), sha1(), sha224(), sha256(), sha512(), sha384()
+50	        with open(outpath, 'rb') as f:
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b324_hashlib.html
+   Location: bot/modules/hash.py:49:89
+48	    try:
+49	        hash_md5, hash_sha1, hash_sha224, hash_sha256, hash_sha512, hash_sha384 = md5(), sha1(), sha224(), sha256(), sha512(), sha384()
+50	        with open(outpath, 'rb') as f:
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/info.py:109:29
+108	GENRES_EMOJI = {'Action': '👊',
+109	                'Adventure': choice(['🪂', '🧗‍♀', '🌋']),
+110	                '#Action & Adventure': choice(['👊', '🪂', '🧗‍♀', '🌋']),
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/info.py:110:39
+109	                'Adventure': choice(['🪂', '🧗‍♀', '🌋']),
+110	                '#Action & Adventure': choice(['👊', '🪂', '🧗‍♀', '🌋']),
+111	                'Comedy': '🤣',
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/info.py:113:25
+112	                'Drama': '🎭',
+113	                'Crime': choice(['🔪', '💰', '💼']),
+114	                'Ecchi': choice(['💋', '🥵']),
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/info.py:114:25
+113	                'Crime': choice(['🔪', '💰', '💼']),
+114	                'Ecchi': choice(['💋', '🥵']),
+115	                'Family': '👨‍',
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/info.py:116:27
+115	                'Family': '👨‍',
+116	                'Fantasy': choice(['🧞', '🧞‍♂', '🧞‍♀', '🌗']),
+117	                'Hentai': '🔞',
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/info.py:130:33
+129	                'Sci-Fi & Fantasy': '🛸',
+130	                'Slice of Life': choice(['☘', '🍁']),
+131	                'Sports': '⚽️',
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/info.py:133:28
+132	                'Supernatural': '🫧',
+133	                'Thriller': choice(['🥶', '🔪', '🤯'])}
+134
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/scrapper.py:70:68
+69	        else:
+70	            msg_scrap = await sendingMessage(log_msg, self.message, choice(config_dict['IMAGE_COMPLETE'].split()), buttons.build_menu(1))
+71	        if self._pm and self._isSuperGroup:
+
+--------------------------------------------------
+>> Issue: [B604:any_other_function_with_shell_equals_true] Function call with shell=True parameter identified, possible security issue.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b604_any_other_function_with_shell_equals_true.html
+   Location: bot/modules/shell.py:20:30
+19	    cmd = cmd[1].strip()
+20	    stdout, stderr, _ = await cmd_exec(cmd, shell=True)
+21	    text = ''
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/modules/status.py:122:4
+121	                await query.answer(msg, True)
+122	    except:
+123	        pass
+124
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/modules/torrent_search.py:95:24
+94	                            msg += f"<b>Seeders: </b>{result['seeders']} | <b>Leechers: </b>{result['leechers']}<br>"
+95	                        except:
+96	                            pass
+97	                        if 'torrent' in result.keys():
+
+--------------------------------------------------
+>> Issue: [B112:try_except_continue] Try, Except, Continue detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html
+   Location: bot/modules/torrent_search.py:103:16
+102	                            msg += '<br>'
+103	                except:
+104	                    continue
+105	            else:
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/modules/torrent_search.py:165:20
+164	                                "<b>Leechers: </b>{result['leechers']}</span>")
+165	                    except:
+166	                        pass
+167	                    if 'torrent' in result:
+
+--------------------------------------------------
+>> Issue: [B112:try_except_continue] Try, Except, Continue detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html
+   Location: bot/modules/torrent_search.py:171:12
+170	                        msg += "<span class='topmarginxl'><b>Share Magnet to</b> <a class='withhover' href='http://t.me/share/url?url={quote(result['magnet'])}'>Telegram</a></span>"
+171	            except:
+172	                continue
+173	        else:
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html
+   Location: bot/modules/user_settings.py:677:8
+676	            await wait_for(event.wait(), timeout=180)
+677	        except:
+678	            pass
+679	        finally:
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/wayback.py:51:49
+50	    await deleteMessage(mesg)
+51	    way_msg = await sendingMessage(msg, message, choice(config_dict['IMAGE_COMPLETE'].split()), buttons.build_menu(1))
+52	    if chat_id := config_dict['OTHER_LOG']:
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: bot/modules/wayback.py:65:29
+64	        useragent = ('Mozilla/5.0 (Linux; Android 10; SM-G975F) ', 'AppleWebKit/537.36 (KHTML, like Gecko) ', 'Chrome/81.0.4044.117 Mobile Safari/537.36')
+65	        wb = wayurl(pageurl, choice(useragent))
+66	        archive = wb.save()
+
+--------------------------------------------------
+
+Code scanned:
+	Total lines of code: 20952
+	Total lines skipped (#nosec): 0
+	Total potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 0
+
+Run metrics:
+	Total issues (by severity):
+		Undefined: 0
+		Low: 103
+		Medium: 20
+		High: 4
+	Total issues (by confidence):
+		Undefined: 0
+		Low: 6
+		Medium: 18
+		High: 103
+Files skipped (0):

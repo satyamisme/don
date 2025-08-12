@@ -1,6 +1,7 @@
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload
 from io import FileIO
+from json import loads
 from logging import getLogger
 from os import makedirs, path as ospath
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type, RetryError
@@ -110,7 +111,7 @@ class gdDownload(GoogleDriveHelper):
                     retries += 1
                     continue
                 if err.resp.get('content-type', '').startswith('application/json'):
-                    reason = eval(err.content).get('error').get('errors')[0].get('reason')
+                    reason = loads(err.content).get('error').get('errors')[0].get('reason')
                     if reason not in ('downloadQuotaExceeded', 'dailyLimitExceeded'):
                         raise err
                     if self.use_sa:

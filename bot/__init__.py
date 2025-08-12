@@ -5,7 +5,7 @@ from base64 import b64decode
 from dotenv import load_dotenv, dotenv_values
 from logging import getLogger, FileHandler, StreamHandler, basicConfig, INFO, ERROR, warning as log_warning
 from os import remove as osremove, path as ospath, environ, getcwd
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 from pyrogram import Client as tgClient, __version__
 from pyrogram.enums import ParseMode
 from qbittorrentapi import Client as qbClient
@@ -101,8 +101,8 @@ if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluste
     if not DATABASE_URL.startswith('mongodb'):
         try:
             DATABASE_URL = b64decode(resub('ini|adalah|pesan|yang|sangat|rahasia', '', DATABASE_URL)).decode('utf-8')
-        except:
-            pass
+        except Exception as e:
+            LOGGER.error('Error decoding DATABASE_URL: %s', e)
     try:
         conn = MongoClient(DATABASE_URL)
         db = conn.mltb
@@ -145,10 +145,11 @@ if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluste
             if not DATABASE_URL.startswith('mongodb'):
                 try:
                     DATABASE_URL = b64decode(resub('ini|adalah|pesan|rahasia', '', DATABASE_URL)).decode('utf-8')
-                except:
-                    pass
-    except Exception as e:
+                except Exception as e:
+                    LOGGER.error('Error decoding DATABASE_URL: %s', e)
+    except errors.ConnectionFailure as e:
         LOGGER.error('Database ERROR: %s', e)
+        exit(1)
 else:
     config_dict = {}
 
@@ -300,7 +301,7 @@ CLONE_LIMIT = ''
 LEECH_LIMIT = environ.get('LEECH_LIMIT', '')
 LEECH_LIMIT = float(LEECH_LIMIT) if LEECH_LIMIT else ''
 
-LEECH_SPLIT_SIZE = _to_int(environ.get('LEECH_SPLIT_SIZE'), '')
+LEECH_SPLIT_SIZE = _to_int(environ.get('LEECH_SPLIT_SIZE'), 2097151000)
 
 MEGA_LIMIT = environ.get('MEGA_LIMIT', '')
 MEGA_LIMIT = float(MEGA_LIMIT) if MEGA_LIMIT else ''
@@ -759,7 +760,10 @@ if not config_dict['ARGO_TOKEN']:
     config_dict['TORRENT_PORT'] = PORT
             
 PORT = environ.get('PORT')
-Popen(f"gunicorn web.wserver:app --bind 0.0.0.0:{PORT} --worker-class gevent", shell=True)
+if PORT is not None and PORT.isdigit():
+    Popen(["gunicorn", "web.wserver:app", f"--bind=0.0.0.0:{PORT}", "--worker-class=gevent"])
+else:
+    LOGGER.warning('PORT is not set or not a valid integer. Skipping gunicorn start.')
 
 srun([QBIT_NAME, '-d', f'--profile={getcwd()}'], check=True)
 if not ospath.exists('.netrc'):
@@ -777,7 +781,9 @@ sleep(0.5)
 if ospath.exists('accounts.zip'):
     if ospath.exists('accounts'):
         srun(['rm', '-rf', 'accounts'], check=True)
-    srun('7z x -o. -aoa accounts.zip accounts/*.json && chmod -R 777 accounts', shell=True)
+    srun(['7z', 'x', '-o.', '-aoa', 'accounts.zip', 'accounts/*.json'], check=True)
+    if ospath.isdir('accounts'):
+        srun(['chmod', '-R', '777', 'accounts'], check=True)
     osremove('accounts.zip')
 if not ospath.exists('accounts'):
     config_dict['USE_SERVICE_ACCOUNTS'] = False
