@@ -1,5 +1,6 @@
 from time import time
-from bot.helper.ext_utils.status_utils import MirrorStatus, get_readable_file_size, get_readable_time
+from bot.helper.ext_utils.status_constants import MirrorStatus
+from bot.helper.ext_utils.status_utils import get_readable_file_size, get_readable_time
 
 class VideoStatus:
     def __init__(self, listener, size, gid, process):
@@ -9,8 +10,6 @@ class VideoStatus:
         self._process = process
         self._start_time = time()
         self._processed_bytes = 0
-        self.streams_kept = None
-        self.streams_removed = None
 
     def gid(self):
         return self._gid

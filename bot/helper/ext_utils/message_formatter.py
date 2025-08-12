@@ -66,12 +66,18 @@ async def format_message(listener, size, link=None):
     msg.append("✅ **Processing Complete**")
 
     # File Info
-    name = listener.name
+    new_name = listener.name
+    original_name = getattr(listener, 'original_name', None)
+
+    if original_name and original_name != new_name:
+        msg.append(f"📽️ `{original_name}` → `{new_name}`")
+    else:
+        msg.append(f"📽️ `{new_name}`")
+
     elapsed = get_readable_time(time() - listener.message.date.timestamp())
     date = datetime.now().strftime('%d %b %Y')
     size_str = get_readable_file_size(size)
 
-    msg.append(f"📽️ `{name}`")
     msg.append(f"📏 {size_str} | ⏱️ {elapsed} | 📅 {date}")
 
     streams_kept = getattr(listener, 'streams_kept', [])

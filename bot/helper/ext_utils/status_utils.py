@@ -7,36 +7,10 @@ from pytz import timezone
 from bot import bot_name, task_dict, task_dict_lock, botStartTime, config_dict
 from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.button_build import ButtonMaker
-from bot.helper.mirror_utils.status_utils.video_status import VideoStatus
+from .status_constants import MirrorStatus
 
 
 SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
-
-
-class MirrorStatus:
-    STATUS_ARCHIVING = 'Archiving'
-    STATUS_CHECKING = 'CheckingUp'
-    STATUS_CLONING = 'Cloning'
-    STATUS_COMPRESS = 'Compressing'
-    STATUS_CONVERT = 'Converting'
-    STATUS_SUBSYNC = 'Syncing'
-    STATUS_DOWNLOADING = 'Downloading'
-    STATUS_EXTRACTING = 'Extracting'
-    STATUS_MERGING = 'Merging'
-    STATUS_PAUSED = 'Paused'
-    STATUS_PROCESSING = 'Processing'
-    STATUS_QUEUEDL = 'QueueDl'
-    STATUS_QUEUEUP = 'QueueUl'
-    STATUS_RMSTREAM = 'Removing'
-    STATUS_SAMVID = 'SamVid'
-    STATUS_METADATA = 'Metadata'
-    STATUS_SEEDING = 'Seeding'
-    STATUS_SPLITTING = 'Splitting'
-    STATUS_TRIM = 'Trimming'
-    STATUS_UPLOADING = 'Uploading'
-    STATUS_UPLOADINGTOGO = 'Uploading'
-    STATUS_WAIT = 'Waiting'
-    STATUS_WATERMARK = 'Watermarking'
 
 
 STATUS_VALUES = [('ALL', 'All'),
@@ -212,7 +186,7 @@ def get_readable_message(sid: int, is_user: bool, page_no: int=1, status : str='
         else:
             msg += (f'\n<b>├ Size:</b> {task.size()}'
                     f'\n<b>├ Elapsed:</b> {task.elapsed() or "~"}')
-        if isinstance(task, VideoStatus):
+        if hasattr(task, '_listener') and hasattr(task._listener, 'streams_kept'):
             msg += _get_video_stream_info(task)
         msg += f'{ext_msg}\n<b>└ </b><code>/{BotCommands.CancelTaskCommand} {task.gid()}</code>\n\n'
 
