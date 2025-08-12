@@ -147,9 +147,12 @@ class TgUploader:
         if self._is_cancelled:
             return
         try:
+            upload_mode = self._listener.user_dict.get('upload_mode', 'split')
+            use_userbot = (bot_dict.get('IS_PREMIUM') and await get_path_size(self._up_path) > DEFAULT_SPLIT_SIZE and upload_mode == 'userbot') or \
+                          (bot_dict.get('USERBOT') and config_dict['USERBOT_LEECH'])
+
             async with bot_lock:
-                self._client = (bot_dict['USERBOT'] if bot_dict['IS_PREMIUM'] and await get_path_size(self._up_path) > DEFAULT_SPLIT_SIZE
-                                or bot_dict['USERBOT'] and config_dict['USERBOT_LEECH'] else bot)
+                self._client = bot_dict['USERBOT'] if use_userbot else bot
             is_video, is_audio, is_image = await get_document_type(self._up_path)
             if not is_image and thumb is None:
                 file_name = ospath.splitext(file)[0]
