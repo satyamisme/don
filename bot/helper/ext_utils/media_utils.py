@@ -65,21 +65,26 @@ async def is_multi_streams(path):
 
 async def get_media_info(path):
     try:
-        result = await cmd_exec(['ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json', '-show_format', path])
+        result = await cmd_exec(['ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json', '-show_format', '-show_streams', path])
         if res := result[1]:
             LOGGER.warning('Get Media Info: %s', res)
+            return 0, None, None, None
     except Exception as e:
         LOGGER.error('Get Media Info: %s. Mostly File not found!', e)
-        return 0, None, None
-    fields = literal_eval(result[0]).get('format')
+        return 0, None, None, None
+
+    media_info = literal_eval(result[0])
+    fields = media_info.get('format')
+    streams = media_info.get('streams')
     if fields is None:
-        LOGGER.error('Get_media_info: %s', result)
-        return 0, None, None
+        LOGGER.error('Get_media_info: %s', media_info)
+        return 0, None, None, None
+
     duration = round(float(fields.get('duration', 0)))
     tags = fields.get('tags', {})
     artist = tags.get('artist') or tags.get('ARTIST') or tags.get('Artist')
     title = tags.get('title') or tags.get('TITLE') or tags.get('Title')
-    return duration, artist, title
+    return duration, artist, title, streams
 
 
 async def post_media_info(path: str, size: int, image=None, is_link=False):

@@ -9,6 +9,8 @@ class VideoStatus:
         self._process = process
         self._start_time = time()
         self._processed_bytes = 0
+        self.streams_kept = None
+        self.streams_removed = None
 
     def gid(self):
         return self._gid
