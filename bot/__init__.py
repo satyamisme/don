@@ -92,13 +92,13 @@ QBIT_NAME = environ.get('QBIT_NAME', 'qbittorrent-nox')
 FFMPEG_NAME = environ.get('FFMPEG_NAME', 'ffmpeg')
 
 # ============================ REQUIRED ================================
-if not (BOT_TOKEN := environ.get('BOT_TOKEN', '6499364659:AAHMmUxMWag28I9V_9YJBi8qaZWZ0VstGEk')):
+if not (BOT_TOKEN := environ.get('BOT_TOKEN')):
     LOGGER.error('BOT_TOKEN variable is missing! Exiting now')
     exit(1)
 
 bot_id = BOT_TOKEN.split(':', 1)[0]
 
-if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluster0.vc2htx0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'):
+if DATABASE_URL := environ.get('DATABASE_URL'):
     try:
         conn = MongoClient(DATABASE_URL)
         db = conn.mltb
@@ -123,8 +123,8 @@ if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluste
                     with open(file_, 'wb+') as f:
                         f.write(value)
                     if file_ == 'cfg.zip':
-                        srun(['rm', '-rf', '/JDownloader/cfg'])
-                        srun(['7z', 'x', 'cfg.zip', '-o/JDownloader'])
+                        srun(['rm', '-rf', '/JDownloader/cfg'], check=True)
+                        srun(['7z', 'x', 'cfg.zip', '-o/JDownloader'], check=True)
                         osremove('cfg.zip')
         if a2c_options := db.settings.aria2c.find_one({'_id': bot_id}):
             del a2c_options['_id']
@@ -135,14 +135,14 @@ if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluste
             qbit_options = qbit_opt
             LOGGER.info('QBittorrent settings imported from database.')
         conn.close()
-        BOT_TOKEN = environ.get('BOT_TOKEN', '')
-        bot_id = BOT_TOKEN.split(':', 1)[0]
-        if DATABASE_URL := environ.get('DATABASE_URL', ''):
     except errors.InvalidURI as e:
-        LOGGER.error('Database URI is invalid: %s', e)
+        LOGGER.error(f'Database URI is invalid: {e}')
         exit(1)
     except errors.ConnectionFailure as e:
-        LOGGER.error('Database ERROR: %s', e)
+        LOGGER.error(f'Database connection failed: {e}')
+        exit(1)
+    except Exception as e:
+        LOGGER.error(f"Something went wrong while connecting to database: {e}")
         exit(1)
 else:
     config_dict = {}
