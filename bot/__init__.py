@@ -2,6 +2,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aria2p import API as ariaAPI, Client as ariaClient
 from asyncio import Lock
 from base64 import b64decode
+from binascii import Error as BinasciiError
 from dotenv import load_dotenv, dotenv_values
 from logging import getLogger, FileHandler, StreamHandler, basicConfig, INFO, ERROR, warning as log_warning
 from os import remove as osremove, path as ospath, environ, getcwd
@@ -101,8 +102,9 @@ if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluste
     if not DATABASE_URL.startswith('mongodb'):
         try:
             DATABASE_URL = b64decode(resub('ini|adalah|pesan|yang|sangat|rahasia', '', DATABASE_URL)).decode('utf-8')
-        except Exception as e:
-            LOGGER.error('Error decoding DATABASE_URL: %s', e)
+        except (BinasciiError, UnicodeDecodeError):
+            LOGGER.error('DATABASE_URL is not properly encoded. Exiting now.')
+            exit(1)
     try:
         conn = MongoClient(DATABASE_URL)
         db = conn.mltb
@@ -145,8 +147,12 @@ if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluste
             if not DATABASE_URL.startswith('mongodb'):
                 try:
                     DATABASE_URL = b64decode(resub('ini|adalah|pesan|rahasia', '', DATABASE_URL)).decode('utf-8')
-                except Exception as e:
-                    LOGGER.error('Error decoding DATABASE_URL: %s', e)
+                except (BinasciiError, UnicodeDecodeError):
+                    LOGGER.error('DATABASE_URL is not properly encoded. Exiting now.')
+                    exit(1)
+    except errors.InvalidURI as e:
+        LOGGER.error('Database URI is invalid: %s', e)
+        exit(1)
     except errors.ConnectionFailure as e:
         LOGGER.error('Database ERROR: %s', e)
         exit(1)
