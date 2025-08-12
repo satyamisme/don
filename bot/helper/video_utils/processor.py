@@ -137,7 +137,6 @@ async def process_video(path, listener):
             listener.art_streams = [s for s in kept_streams if s.get('disposition', {}).get('attached_pic')]
             listener.streams_kept = [s for s in kept_streams if not s.get('disposition', {}).get('attached_pic')]
 
-        await clean_target(path)
         return final_path
 
     return None
