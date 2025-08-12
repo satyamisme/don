@@ -5,19 +5,14 @@ This module contains the new video processing logic.
 from bot import config_dict, LOGGER, task_dict_lock, task_dict, bot_loop
 from bot.helper.ext_utils.bot_utils import sync_to_async
 from bot.helper.ext_utils.files_utils import get_path_size, clean_target
-from bot.helper.ext_utils.status_utils import get_readable_file_size, get_readable_time
-from bot.helper.telegram_helper.message_utils import sendStatusMessage, update_status_message
 from bot.helper.mirror_utils.status_utils.video_status import VideoStatus
-
 import asyncio
-import subprocess
 import json
 from time import time
+import os.path as ospath
 
 async def get_media_info(path):
-    """
-    Get media information using ffprobe.
-    """
+    """Get media information using ffprobe."""
     try:
         process = await asyncio.create_subprocess_exec(
             'ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json',
@@ -33,80 +28,37 @@ async def get_media_info(path):
         LOGGER.error(f"Exception while getting media info: {e}")
         return None
 
-async def select_streams(media_info):
-    """
-    Select streams based on hierarchical language configuration.
-    """
-    video_stream = None
-    audio_streams = []
-    subtitle_streams = []
+def build_ffmpeg_command(input_file, output_file):
+    """Build the ffmpeg command with language-based mapping and safety flags."""
 
-    # Select best video stream
-    best_video_stream = None
-    max_pixels = -1
+    preferred_langs = [lang.strip() for lang in config_dict.get('PREFERRED_LANGUAGES', 'tel,hin,eng').split(',')]
 
-    for stream in media_info.get('streams', []):
-        if stream.get('codec_type') == 'video':
-            # Ignore attached pictures
-            if stream.get('disposition', {}).get('attached_pic'):
-                continue
+    cmd = ['ffmpeg', '-i', input_file]
 
-            width = stream.get('width', 0)
-            height = stream.get('height', 0)
-            pixels = width * height
+    cmd.extend(['-map', '0:v', '-map', '0:s?', '-map', '0:d?'])
+    for lang in preferred_langs:
+        cmd.extend(['-map', f'0:a?(language:{lang})'])
 
-            if pixels > max_pixels:
-                max_pixels = pixels
-                best_video_stream = stream
+    cmd.extend(['-c', 'copy'])
+    cmd.extend(['-avoid_negative_ts', 'make_zero', '-fflags', '+genpts'])
+    cmd.extend(['-max_interleave_delta', '0'])
 
-    video_stream = best_video_stream
+    cmd.extend(['-f', 'matroska', '-y', output_file])
 
-    all_audio_streams = [s for s in media_info.get('streams', []) if s.get('codec_type') == 'audio']
+    return cmd
 
-    # Hierarchical Audio Stream Selection
-    lang_priority = ['tel', 'hin', 'eng']
-    selected_lang_streams = []
-
-    for lang in lang_priority:
-        lang_streams = [s for s in all_audio_streams if s.get('tags', {}).get('language') == lang]
-        if lang_streams:
-            selected_lang_streams = lang_streams
-            break
-
-    if selected_lang_streams:
-        audio_streams = selected_lang_streams
-    else:
-        # If no priority languages are found, keep all audio streams
-        audio_streams = all_audio_streams
-
-    # Subtitle selection (simple allow-list based on PREFERRED_LANGUAGES)
-    preferred_langs = [lang.strip() for lang in config_dict.get('PREFERRED_LANGUAGES', 'en').split(',')]
-    for stream in media_info.get('streams', []):
-        if stream.get('codec_type') == 'subtitle':
-            if stream.get('tags', {}).get('language') in preferred_langs:
-                subtitle_streams.append(stream)
-
-    return video_stream, audio_streams, subtitle_streams
-
-async def run_ffmpeg(path, output_path, video_stream, audio_streams, subtitle_streams, listener, media_info):
-    """
-    Run ffmpeg with the selected streams and report progress.
-    """
+async def run_ffmpeg(command, path, listener):
+    """Run the generated ffmpeg command and report progress."""
     total_size = await get_path_size(path)
-    total_duration = float(media_info['format']['duration'])
 
-    cmd = ['ffmpeg', '-progress', '-', '-i', path, '-map', f'0:{video_stream["index"]}', '-c:v', 'copy']
-
-    for stream in audio_streams:
-        cmd.extend(['-map', f'0:{stream["index"]}', '-c:a', 'copy'])
-
-    for stream in subtitle_streams:
-        cmd.extend(['-map', f'0:{stream["index"]}', '-c:s', 'copy'])
-
-    cmd.extend(['-y', output_path])
+    media_info = await get_media_info(path)
+    if not media_info or 'format' not in media_info or 'duration' not in media_info['format']:
+        total_duration = 1
+    else:
+        total_duration = float(media_info['format']['duration'])
 
     process = await asyncio.create_subprocess_exec(
-        *cmd,
+        *command,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
@@ -125,7 +77,6 @@ async def run_ffmpeg(path, output_path, video_stream, audio_streams, subtitle_st
 
     parser_task = bot_loop.create_task(_parser())
 
-    # Log stderr to prevent pipe buffer from filling up
     async def _log_stderr():
         async for line in process.stderr:
             LOGGER.info(f"ffmpeg: {line.decode().strip()}")
@@ -138,44 +89,54 @@ async def run_ffmpeg(path, output_path, video_stream, audio_streams, subtitle_st
     stderr_task.cancel()
 
     if process.returncode == 0:
-        LOGGER.info(f"Video processing successful: {output_path}")
-        return output_path
+        LOGGER.info(f"Video processing successful: {command[-1]}")
+        return command[-1]
     else:
-        # No need to read stderr here as it's already logged
         LOGGER.error(f"ffmpeg exited with non-zero return code: {process.returncode}")
         await listener.onUploadError(f"ffmpeg exited with non-zero return code: {process.returncode}")
         return None
 
-
 async def process_video(path, listener):
-    """
-    Main function to process the video.
-    """
-    media_info = await get_media_info(path)
-    if not media_info:
+    """Main function to process the video."""
+
+    listener.original_name = ospath.basename(path)
+    original_media_info = await get_media_info(path)
+    if not original_media_info:
+        await listener.onUploadError("Could not get media info from the input file.")
         return None
 
-    video_stream, audio_streams, subtitle_streams = await select_streams(media_info)
+    base_name, _ = path.rsplit('.', 1)
+    output_path = f"{base_name}.mkv"
 
-    if not video_stream:
-        LOGGER.info("No video stream found. Skipping video processing.")
-        return path
+    command = build_ffmpeg_command(path, output_path)
 
-    output_path = f"{path.rsplit('.', 1)[0]}.mp4"
-    processed_path = await run_ffmpeg(path, output_path, video_stream, audio_streams, subtitle_streams, listener, media_info)
+    processed_path = await run_ffmpeg(command, path, listener)
 
     if processed_path:
-        listener.streams_kept = [video_stream] + audio_streams + subtitle_streams
-        original_streams = media_info.get('streams', [])
-        listener.streams_removed = [s for s in original_streams if s not in listener.streams_kept]
+        processed_media_info = await get_media_info(processed_path)
+        if not processed_media_info:
+            await listener.onUploadError("Could not get media info from the processed file.")
+            listener.streams_kept = []
+            listener.streams_removed = []
+            listener.art_streams = []
+        else:
+            original_streams = original_media_info.get('streams', [])
+            kept_streams = processed_media_info.get('streams', [])
+
+            kept_indices = {s['index'] for s in kept_streams}
+
+            listener.streams_kept = kept_streams
+            listener.streams_removed = [s for s in original_streams if s['index'] not in kept_indices]
+
+            listener.art_streams = [s for s in kept_streams if s.get('disposition', {}).get('attached_pic')]
+            listener.streams_kept = [s for s in kept_streams if not s.get('disposition', {}).get('attached_pic')]
+
         await clean_target(path)
 
     return processed_path
 
 async def get_metavideo(url):
-    """
-    Get media metadata from a URL using ffprobe.
-    """
+    """Get media metadata from a URL using ffprobe."""
     try:
         process = await asyncio.create_subprocess_exec(
             'ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json',
