@@ -171,15 +171,18 @@ class TaskListener(TaskConfig):
                     LOGGER.error(f"Video processing failed for {video_file}")
                     continue
 
-            up_dir = self.dir
-            self.name = ospath.basename(up_dir)
-            size = await get_path_size(up_dir)
+                temp_dir = ospath.join(self.dir, 'temp_upload', str(time()))
+                await makedirs(temp_dir, exist_ok=True)
 
-            LOGGER.info(f'Leech Name: {self.name}')
-            tg = TgUploader(self, up_dir, size)
-            async with task_dict_lock:
-                task_dict[self.mid] = TelegramStatus(self, tg, size, self.gid, 'up')
-            await gather(update_status_message(self.message.chat.id), tg.upload([], []))
+                self.name = ospath.basename(processed_path)
+                await move(processed_path, ospath.join(temp_dir, self.name))
+
+                size = await get_path_size(temp_dir)
+                LOGGER.info(f'Leech Name: {self.name}')
+                tg = TgUploader(self, temp_dir, size)
+                async with task_dict_lock:
+                    task_dict[self.mid] = TelegramStatus(self, tg, size, self.gid, 'up')
+                await gather(update_status_message(self.message.chat.id), tg.upload([], []))
             return
 
         if not self.compress and not self.extract and not self.vidMode:
