@@ -14,7 +14,41 @@ from bot.helper.ext_utils.status_utils import get_readable_file_size, get_readab
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.message_utils import sendMessage, editMessage, deleteMessage
 from bot.helper.video_utils import executor as exc
+from bot.helper.video_utils.executor import get_metavideo
 import re
+
+async def process_video(path, listener):
+    """
+    Process video to remove unwanted audio tracks based on language priority.
+    This function is non-interactive and designed to be called from the TaskListener.
+    """
+    metadata = await get_metavideo(path)
+    if not metadata or not metadata[0]:
+        listener.onUploadError("Failed to get video metadata.")
+        return None
+
+    executor = exc.VidEcxecutor(listener, path, listener.gid)
+    # Set the mode to 'rmstream' for the executor
+    executor.mode = 'rmstream'
+
+    selector = ExtraSelect(executor)
+    await selector.auto_select(metadata[0]) # metadata[0] contains the streams
+
+    # The auto_select method populates executor.data['sdata'] with streams to remove.
+    # The execute method on the executor will use this data.
+
+    # We need to ensure the executor knows which streams to remove.
+    # The auto_select method should handle this by modifying the executor's state.
+
+    # Now, we can call the executor's main method to perform the operation
+    # The `execute` method in VidEcxecutor should handle the 'rmstream' case.
+    processed_path = await executor.execute()
+
+    if executor.is_cancel:
+        return None
+
+    return processed_path
+
 
 class ExtraSelect:
     def __init__(self, executor: exc.VidEcxecutor):
