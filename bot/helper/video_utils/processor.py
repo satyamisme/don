@@ -73,8 +73,9 @@ async def process_video(path, listener):
     art_streams = [s for s in all_video_streams if s.get('disposition', {}).get('attached_pic')]
     main_video_streams = [s for s in all_video_streams if not s.get('disposition', {}).get('attached_pic')]
 
-    preferred_langs = [lang.strip() for lang in config_dict.get('PREFERRED_LANGUAGES', 'eng,hin,tel').split(',')]
-    LOGGER.info(f"Preferred Languages: {preferred_langs}")
+    lang_string = config_dict.get('PREFERRED_LANGUAGES', 'eng,hin,tel')
+    preferred_langs = [lang.strip().strip('"\'') for lang in lang_string.split(',')]
+    LOGGER.info(f"Cleaned Preferred Languages: {preferred_langs}")
     selected_audio = []
     found_preferred = False
     for lang in preferred_langs:
