@@ -2,10 +2,11 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aria2p import API as ariaAPI, Client as ariaClient
 from asyncio import Lock
 from base64 import b64decode
+from binascii import Error as BinasciiError
 from dotenv import load_dotenv, dotenv_values
 from logging import getLogger, FileHandler, StreamHandler, basicConfig, INFO, ERROR, warning as log_warning
 from os import remove as osremove, path as ospath, environ, getcwd
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 from pyrogram import Client as tgClient, __version__
 from pyrogram.enums import ParseMode
 from qbittorrentapi import Client as qbClient
@@ -91,18 +92,13 @@ QBIT_NAME = environ.get('QBIT_NAME', 'qbittorrent-nox')
 FFMPEG_NAME = environ.get('FFMPEG_NAME', 'ffmpeg')
 
 # ============================ REQUIRED ================================
-if not (BOT_TOKEN := environ.get('BOT_TOKEN', '6499364659:AAHMmUxMWag28I9V_9YJBi8qaZWZ0VstGEk')):
+if not (BOT_TOKEN := environ.get('BOT_TOKEN')):
     LOGGER.error('BOT_TOKEN variable is missing! Exiting now')
     exit(1)
 
 bot_id = BOT_TOKEN.split(':', 1)[0]
 
-if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluster0.vc2htx0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'):
-    if not DATABASE_URL.startswith('mongodb'):
-        try:
-            DATABASE_URL = b64decode(resub('ini|adalah|pesan|yang|sangat|rahasia', '', DATABASE_URL)).decode('utf-8')
-        except:
-            pass
+if DATABASE_URL := environ.get('DATABASE_URL'):
     try:
         conn = MongoClient(DATABASE_URL)
         db = conn.mltb
@@ -127,8 +123,8 @@ if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluste
                     with open(file_, 'wb+') as f:
                         f.write(value)
                     if file_ == 'cfg.zip':
-                        srun(['rm', '-rf', '/JDownloader/cfg'])
-                        srun(['7z', 'x', 'cfg.zip', '-o/JDownloader'])
+                        srun(['rm', '-rf', '/JDownloader/cfg'], check=True)
+                        srun(['7z', 'x', 'cfg.zip', '-o/JDownloader'], check=True)
                         osremove('cfg.zip')
         if a2c_options := db.settings.aria2c.find_one({'_id': bot_id}):
             del a2c_options['_id']
@@ -139,27 +135,34 @@ if DATABASE_URL := environ.get('DATABASE_URL', 'mongodb+srv://hello:hello@cluste
             qbit_options = qbit_opt
             LOGGER.info('QBittorrent settings imported from database.')
         conn.close()
-        BOT_TOKEN = environ.get('BOT_TOKEN', '')
-        bot_id = BOT_TOKEN.split(':', 1)[0]
-        if DATABASE_URL := environ.get('DATABASE_URL', ''):
-            if not DATABASE_URL.startswith('mongodb'):
-                try:
-                    DATABASE_URL = b64decode(resub('ini|adalah|pesan|rahasia', '', DATABASE_URL)).decode('utf-8')
-                except:
-                    pass
+    except errors.InvalidURI as e:
+        LOGGER.error(f'Database URI is invalid: {e}')
+        exit(1)
+    except errors.ConnectionFailure as e:
+        LOGGER.error(f'Database connection failed: {e}')
+        exit(1)
     except Exception as e:
-        LOGGER.error('Database ERROR: %s', e)
+        LOGGER.error(f"Something went wrong while connecting to database: {e}")
+        exit(1)
 else:
     config_dict = {}
 
 if OWNER_ID := environ.get('OWNER_ID', ''):
-    OWNER_ID = int(OWNER_ID)
+    try:
+        OWNER_ID = int(str(OWNER_ID).strip().split('#')[0].replace('"', '').replace("'", ""))
+    except:
+        LOGGER.error('OWNER_ID is not a valid integer! Exiting now')
+        exit(1)
 else:
     LOGGER.error('OWNER_ID variable is missing! Exiting now')
     exit(1)
 
 if TELEGRAM_API := environ.get('TELEGRAM_API', ''):
-    TELEGRAM_API = int(TELEGRAM_API)
+    try:
+        TELEGRAM_API = int(str(TELEGRAM_API).strip().split('#')[0].replace('"', '').replace("'", ""))
+    except:
+        LOGGER.error('TELEGRAM_API is not a valid integer! Exiting now')
+        exit(1)
 else:
     LOGGER.error('TELEGRAM_API variable is missing! Exiting now')
     exit(1)
@@ -184,15 +187,23 @@ if DEFAULT_UPLOAD != 'rc':
 
 
 # =========================== OPTIONALS ===============================
+def _to_int(val, default=0):
+    if not val:
+        return default
+    try:
+        return int(str(val).strip().split('#')[0].replace('"', '').replace("'", ""))
+    except ValueError:
+        return default
+
 if AUTHORIZED_CHATS := environ.get('AUTHORIZED_CHATS', ''):
     aid = AUTHORIZED_CHATS.split()
     for id_ in aid:
-        user_data[int(id_.strip())] = {'is_auth': True}
+        user_data[_to_int(id_.strip())] = {'is_auth': True}
 
 if SUDO_USERS := environ.get('SUDO_USERS', ''):
     aid = SUDO_USERS.split()
     for id_ in aid:
-        user_data[int(id_.strip())] = {'is_sudo': True}
+        user_data[_to_int(id_.strip())] = {'is_sudo': True}
 
 if EXTENSION_FILTER := environ.get('EXTENSION_FILTER', ''):
     fx = EXTENSION_FILTER.split()
@@ -200,23 +211,15 @@ if EXTENSION_FILTER := environ.get('EXTENSION_FILTER', ''):
         x = x.lstrip('.')
         GLOBAL_EXTENSION_FILTER.append(x.strip().lower())
 
-TORRENT_TIMEOUT = environ.get('TORRENT_TIMEOUT', '')
-TORRENT_TIMEOUT = int(TORRENT_TIMEOUT) if TORRENT_TIMEOUT else ''
-            
-QUEUE_ALL = environ.get('QUEUE_ALL', '')
-QUEUE_ALL = int(QUEUE_ALL) if QUEUE_ALL else ''
-
-QUEUE_DOWNLOAD = environ.get('QUEUE_DOWNLOAD', '5')
-QUEUE_DOWNLOAD = int(QUEUE_DOWNLOAD) if QUEUE_DOWNLOAD else ''
-
-QUEUE_UPLOAD = environ.get('QUEUE_UPLOAD', '')
-QUEUE_UPLOAD = int(QUEUE_UPLOAD) if QUEUE_UPLOAD else ''
-
+TORRENT_TIMEOUT = _to_int(environ.get('TORRENT_TIMEOUT'), '')
+QUEUE_ALL = _to_int(environ.get('QUEUE_ALL'), '')
+QUEUE_DOWNLOAD = _to_int(environ.get('QUEUE_DOWNLOAD'), 5)
+QUEUE_UPLOAD = _to_int(environ.get('QUEUE_UPLOAD'), '')
 ARGO_TOKEN = environ.get('ARGO_TOKEN', '')
 PING_URL = environ.get('PING_URL', '')
 ENABLE_STREAM_LINK = environ.get('ENABLE_STREAM_LINK', 'False').lower() == 'true'
 STREAM_BASE_URL = environ.get('STREAM_BASE_URL', '').rstrip('/')
-STREAM_PORT = environ.get('STREAM_PORT', '')
+STREAM_PORT = _to_int(environ.get('STREAM_PORT'), 80)
 QUEUE_COMPLETE = environ.get('QUEUE_COMPLETE', 'True').lower() == 'true'
 DISABLE_MIRROR_LEECH = environ.get('DISABLE_MIRROR_LEECH', '')
 INDEX_URL = environ.get('INDEX_URL', '').rstrip('/')
@@ -227,12 +230,12 @@ CMD_SUFFIX = environ.get('CMD_SUFFIX', '')
 DATABASE_URL = environ.get('DATABASE_URL', '')
 AUTO_THUMBNAIL = environ.get('AUTO_THUMBNAIL', 'True').lower() == 'true'
 PREMIUM_MODE = environ.get('PREMIUM_MODE', 'True').lower() == 'true'
-SESSION_TIMEOUT = int(environ.get('SESSION_TIMEOUT', 0))
+SESSION_TIMEOUT = _to_int(environ.get('SESSION_TIMEOUT', 0))
 DAILY_MODE = environ.get('DAILY_MODE', 'False').lower() == 'true'
 MEDIA_GROUP = environ.get('MEDIA_GROUP', 'False').lower() == 'true'
 STOP_DUPLICATE = environ.get('STOP_DUPLICATE', 'True').lower() == 'true'
 IS_TEAM_DRIVE = environ.get('IS_TEAM_DRIVE', 'True').lower() == 'true'
-MULTI_TIMEGAP = int(environ.get('MULTI_TIMEGAP', 5))
+MULTI_TIMEGAP = _to_int(environ.get('MULTI_TIMEGAP'), 5)
 AS_DOCUMENT = environ.get('AS_DOCUMENT', 'False').lower() == 'true'
 SAVE_MESSAGE = environ.get('SAVE_MESSAGE', 'True').lower() == 'true'
 LEECH_FILENAME_PREFIX = environ.get('LEECH_FILENAME_PREFIX', '')
@@ -240,11 +243,11 @@ LEECH_INFO_PIN = environ.get('LEECH_INFO_PIN', 'False').lower() == 'true'
 USER_SESSION_STRING = environ.get('USER_SESSION_STRING', '')
 SAVE_SESSION_STRING = environ.get('SAVE_SESSION_STRING', '')
 USERBOT_LEECH = environ.get('USERBOT_LEECH', 'False').lower() == 'true'
-AUTO_DELETE_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_MESSAGE_DURATION', 30))
-AUTO_DELETE_UPLOAD_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_UPLOAD_MESSAGE_DURATION', 30))
-STATUS_UPDATE_INTERVAL = int(environ.get('STATUS_UPDATE_INTERVAL', 5))
+AUTO_DELETE_MESSAGE_DURATION = _to_int(environ.get('AUTO_DELETE_MESSAGE_DURATION'), 30)
+AUTO_DELETE_UPLOAD_MESSAGE_DURATION = _to_int(environ.get('AUTO_DELETE_UPLOAD_MESSAGE_DURATION'), 30)
+STATUS_UPDATE_INTERVAL = _to_int(environ.get('STATUS_UPDATE_INTERVAL'), 5)
 YT_DLP_OPTIONS = environ.get('YT_DLP_OPTIONS', '')
-DAILY_LIMIT_SIZE = int(environ.get('DAILY_LIMIT_SIZE', 50))
+DAILY_LIMIT_SIZE = _to_int(environ.get('DAILY_LIMIT_SIZE'), 50)
 COMPRESS_BANNER = environ.get('COMPRESS_BANNER', 'Re-Encoded')
 LIB264_PRESET = environ.get('LIB264_PRESET', 'superfast')
 LIB265_PRESET = environ.get('LIB265_PRESET', 'faster')
@@ -263,7 +266,7 @@ RCLONE_SERVE_URL = environ.get('RCLONE_SERVE_URL', '').rstrip('/')
 RCLONE_SERVE_PORT = environ.get('RCLONE_SERVE_PORT', '')
 RCLONE_SERVE_USER = environ.get('RCLONE_SERVE_USER', '')
 RCLONE_SERVE_PASS = environ.get('RCLONE_SERVE_PASS', '')
-RCLONE_TFSIMULATION = int(environ.get('RCLONE_TFSIMULATION', '8'))
+RCLONE_TFSIMULATION = _to_int(environ.get('RCLONE_TFSIMULATION', '8'))
 # ======================================================================
                 
             
@@ -272,18 +275,15 @@ ONCOMPLETE_LEECH_LOG = environ.get('ONCOMPLETE_LEECH_LOG', 'True').lower() == 't
 LEECH_LOG = environ.get('LEECH_LOG', '')
 if LEECH_LOG:
     if LEECH_LOG.isdigit() or LEECH_LOG.startswith('-'):
-        LEECH_LOG = int(LEECH_LOG)
+        LEECH_LOG = _to_int(LEECH_LOG)
 else:
     ENABLE_STREAM_LINK = False
 
-MIRROR_LOG = environ.get('MIRROR_LOG', '')
-MIRROR_LOG = int(MIRROR_LOG) if MIRROR_LOG.isdigit() or MIRROR_LOG.startswith('-') else MIRROR_LOG
+MIRROR_LOG = _to_int(environ.get('MIRROR_LOG'), '')
 
-OTHER_LOG = environ.get('OTHER_LOG', '')
-OTHER_LOG = int(OTHER_LOG) if OTHER_LOG.isdigit() or OTHER_LOG.startswith('-') else OTHER_LOG
+OTHER_LOG = _to_int(environ.get('OTHER_LOG'), '')
 
-LINK_LOG = environ.get('LINK_LOG', '')
-LINK_LOG = int(LINK_LOG) if LINK_LOG.isdigit() or LINK_LOG.startswith('-') else LINK_LOG
+LINK_LOG = _to_int(environ.get('LINK_LOG'), '')
 # ======================================================================
 
 
@@ -295,8 +295,7 @@ CLONE_LIMIT = ''
 LEECH_LIMIT = environ.get('LEECH_LIMIT', '')
 LEECH_LIMIT = float(LEECH_LIMIT) if LEECH_LIMIT else ''
 
-LEECH_SPLIT_SIZE = environ.get('LEECH_SPLIT_SIZE', '')
-LEECH_SPLIT_SIZE = int(LEECH_SPLIT_SIZE) if LEECH_SPLIT_SIZE else ''
+LEECH_SPLIT_SIZE = _to_int(environ.get('LEECH_SPLIT_SIZE'), 2097151000)
 
 MEGA_LIMIT = environ.get('MEGA_LIMIT', '')
 MEGA_LIMIT = float(MEGA_LIMIT) if MEGA_LIMIT else ''
@@ -304,14 +303,12 @@ MEGA_LIMIT = float(MEGA_LIMIT) if MEGA_LIMIT else ''
 NONPREMIUM_LIMIT = environ.get('NONPREMIUM_LIMIT', '5')
 NONPREMIUM_LIMIT = float(NONPREMIUM_LIMIT) if NONPREMIUM_LIMIT else ''
 
-STATUS_LIMIT = environ.get('STATUS_LIMIT', '')
-STATUS_LIMIT = int(STATUS_LIMIT) if STATUS_LIMIT else 5
+STATUS_LIMIT = _to_int(environ.get('STATUS_LIMIT'), 5)
 
 TORRENT_DIRECT_LIMIT = environ.get('TORRENT_DIRECT_LIMIT', '')
 TORRENT_DIRECT_LIMIT = float(TORRENT_DIRECT_LIMIT) if TORRENT_DIRECT_LIMIT else ''
 FSUB_CHANNEL_ID = "-1001963446260"
-TOTAL_TASKS_LIMIT = environ.get('TOTAL_TASKS_LIMIT', '')
-TOTAL_TASKS_LIMIT = int(TOTAL_TASKS_LIMIT) if TOTAL_TASKS_LIMIT else ''
+TOTAL_TASKS_LIMIT = _to_int(environ.get('TOTAL_TASKS_LIMIT'), '')
 
 MEGA_EMAIL = environ.get('MEGA_EMAIL', '')
 MEGA_PASSWORD = environ.get('MEGA_PASSWORD', '')
@@ -320,8 +317,7 @@ if len(MEGA_EMAIL) == 0 or len(MEGA_PASSWORD) == 0:
     MEGA_EMAIL = ''
     MEGA_PASSWORD = ''
             
-USER_TASKS_LIMIT = environ.get('USER_TASKS_LIMIT', '')
-USER_TASKS_LIMIT = int(USER_TASKS_LIMIT) if USER_TASKS_LIMIT else ''
+USER_TASKS_LIMIT = _to_int(environ.get('USER_TASKS_LIMIT'), '')
 
 ZIP_UNZIP_LIMIT = environ.get('ZIP_UNZIP_LIMIT', '')
 ZIP_UNZIP_LIMIT = float(ZIP_UNZIP_LIMIT) if ZIP_UNZIP_LIMIT else ''
@@ -329,8 +325,7 @@ ZIP_UNZIP_LIMIT = float(ZIP_UNZIP_LIMIT) if ZIP_UNZIP_LIMIT else ''
 STORAGE_THRESHOLD = environ.get('STORAGE_THRESHOLD', '')
 STORAGE_THRESHOLD = float(STORAGE_THRESHOLD) if STORAGE_THRESHOLD else ''
 
-MAX_YTPLAYLIST = environ.get('MAX_YTPLAYLIST', '')
-MAX_YTPLAYLIST = int(MAX_YTPLAYLIST) if MAX_YTPLAYLIST else ''
+MAX_YTPLAYLIST = _to_int(environ.get('MAX_YTPLAYLIST'), '')
 # ======================================================================
 
 
@@ -350,7 +345,7 @@ if GOFILE:
 FORCE_SHORTEN = environ.get('FORCE_SHORTEN', 'False').lower() == 'true'
 AUTO_MUTE = environ.get('AUTO_MUTE', 'False').lower() == 'true'
 MUTE_CHAT_ID = ""
-AUTO_MUTE_DURATION = int(environ.get('AUTO_MUTE_DURATION', 30))
+AUTO_MUTE_DURATION = _to_int(environ.get('AUTO_MUTE_DURATION', 30))
 # Username
 FUSERNAME = environ.get('FUSERNAME', 'False').lower() == 'true'
 # Subscribe
@@ -366,7 +361,7 @@ STICKERID_COUNT = environ.get('STICKERID_COUNT', 'CAACAgQAAxkBAAKE5GcY_waybDI9-O
 STICKERID_ERROR = environ.get('STICKERID_ERROR', 'CAACAgUAAxkBAAKE0mcY-4dK5n6f6g48N9Ewan6EwvqzAAKiBwACo5GpVIbD3xPwDzqSNgQ')
 STICKERID_LEECH = environ.get('STICKERID_LEECH', 'CAACAgQAAxkBAAKE4WcY_ZUB7seTjXokfngVI1d-8rOnAAKxGgACIPZSDOnpobqbU-_dNgQ')
 STICKERID_MIRROR = environ.get('STICKERID_MIRROR', 'CAACAgUAAxkBAAKE3mcY_RIiOQABU057pFcXzGirQawrNwACXQ8AAhNcSFbQs6XZtrORmzYE')
-STICKER_DELETE_DURATION = int(environ.get('STICKER_DELETE_DURATION', 120))
+STICKER_DELETE_DURATION = _to_int(environ.get('STICKER_DELETE_DURATION', 120))
 # ======================================================================
 
 
@@ -479,33 +474,28 @@ BUTTON_SIX_URL = environ.get('BUTTON_SIX_URL', '')
 
 
 # =========================== QBITTORRENT ==============================
-BASE_URL_PORT = environ.get('BASE_URL_PORT', '')
-BASE_URL_PORT = 80 if len(BASE_URL_PORT) == 0 else int(BASE_URL_PORT)
+BASE_URL_PORT = _to_int(environ.get('BASE_URL_PORT'), 80)
 
 BASE_URL = environ.get('BASE_URL', '').rstrip("/")
 if len(BASE_URL) == 0:
     BASE_URL = ''
 
-PORT = environ.get('PORT', '')
-PORT = 80 if len(PORT) == 0 else int(PORT)
+PORT = _to_int(environ.get('PORT'), 80)
 
-            
-TORRENT_PORT = environ.get('TORRENT_PORT', '5000')
+TORRENT_PORT = _to_int(environ.get('TORRENT_PORT'), 5000)
 WEB_PINCODE = environ.get('WEB_PINCODE', 'False').lower() == 'true'
 # ======================================================================
 
 
 # =============================== RSS ==================================
-RSS_CHAT = environ.get('RSS_CHAT', '')
-RSS_CHAT = int(RSS_CHAT) if RSS_CHAT.isdigit() or RSS_CHAT.startswith('-') else RSS_CHAT
+RSS_CHAT = _to_int(environ.get('RSS_CHAT'), '')
 
-RSS_DELAY = environ.get('RSS_DELAY', '')
-RSS_DELAY = int(RSS_DELAY) if RSS_DELAY else 900
+RSS_DELAY = _to_int(environ.get('RSS_DELAY'), 900)
 # ======================================================================
 
 
 # ============================ TORSEARCH ===============================
-SEARCH_LIMIT = int(environ.get('SEARCH_LIMIT', 20))
+SEARCH_LIMIT = _to_int(environ.get('SEARCH_LIMIT'), 20)
 SEARCH_API_LINK = environ.get('SEARCH_API_LINK', '').rstrip('/')
 SEARCH_PLUGINS = environ.get('SEARCH_PLUGINS', '')
 # ======================================================================
@@ -728,7 +718,7 @@ config_dict = {'BOT_TOKEN': BOT_TOKEN,
                'HEROKU_API_KEY': HEROKU_API_KEY,
                'HEROKU_APP_NAME': HEROKU_APP_NAME,
                # Language
-               'PREFERRED_LANGUAGES': environ.get('PREFERRED_LANGUAGES', 'en,hi,te'),
+               'PREFERRED_LANGUAGES': environ.get('PREFERRED_LANGUAGES', 'eng,hin,tel'),
                'EXCLUDED_LANGUAGES': environ.get('EXCLUDED_LANGUAGES', 'ta,ml'),
                'AUTO_PROCESS_LEECH': environ.get('AUTO_PROCESS_LEECH', 'True').lower() == 'true',
                'LEECH_VIDEO_TOOLS': environ.get('LEECH_VIDEO_TOOLS', 'False').lower() == 'true'}
@@ -764,7 +754,10 @@ if not config_dict['ARGO_TOKEN']:
     config_dict['TORRENT_PORT'] = PORT
             
 PORT = environ.get('PORT')
-Popen(f"gunicorn web.wserver:app --bind 0.0.0.0:{PORT} --worker-class gevent", shell=True)
+if PORT is not None and PORT.isdigit():
+    Popen(["gunicorn", "web.wserver:app", f"--bind=0.0.0.0:{PORT}", "--worker-class=gevent"])
+else:
+    LOGGER.warning('PORT is not set or not a valid integer. Skipping gunicorn start.')
 
 srun([QBIT_NAME, '-d', f'--profile={getcwd()}'], check=True)
 if not ospath.exists('.netrc'):
@@ -782,7 +775,9 @@ sleep(0.5)
 if ospath.exists('accounts.zip'):
     if ospath.exists('accounts'):
         srun(['rm', '-rf', 'accounts'], check=True)
-    srun('7z x -o. -aoa accounts.zip accounts/*.json && chmod -R 777 accounts', shell=True)
+    srun(['7z', 'x', '-o.', '-aoa', 'accounts.zip', 'accounts/*.json'], check=True)
+    if ospath.isdir('accounts'):
+        srun(['chmod', '-R', '777', 'accounts'], check=True)
     osremove('accounts.zip')
 if not ospath.exists('accounts'):
     config_dict['USE_SERVICE_ACCOUNTS'] = False

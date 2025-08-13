@@ -7,35 +7,10 @@ from pytz import timezone
 from bot import bot_name, task_dict, task_dict_lock, botStartTime, config_dict
 from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.button_build import ButtonMaker
+from .status_constants import MirrorStatus
 
 
 SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
-
-
-class MirrorStatus:
-    STATUS_ARCHIVING = 'Archiving'
-    STATUS_CHECKING = 'CheckingUp'
-    STATUS_CLONING = 'Cloning'
-    STATUS_COMPRESS = 'Compressing'
-    STATUS_CONVERT = 'Converting'
-    STATUS_SUBSYNC = 'Syncing'
-    STATUS_DOWNLOADING = 'Downloading'
-    STATUS_EXTRACTING = 'Extracting'
-    STATUS_MERGING = 'Merging'
-    STATUS_PAUSED = 'Paused'
-    STATUS_PROCESSING = 'Processing'
-    STATUS_QUEUEDL = 'QueueDl'
-    STATUS_QUEUEUP = 'QueueUl'
-    STATUS_RMSTREAM = 'Removing'
-    STATUS_SAMVID = 'SamVid'
-    STATUS_METADATA = 'Metadata'
-    STATUS_SEEDING = 'Seeding'
-    STATUS_SPLITTING = 'Splitting'
-    STATUS_TRIM = 'Trimming'
-    STATUS_UPLOADING = 'Uploading'
-    STATUS_UPLOADINGTOGO = 'Uploading'
-    STATUS_WAIT = 'Waiting'
-    STATUS_WATERMARK = 'Watermarking'
 
 
 STATUS_VALUES = [('ALL', 'All'),
@@ -126,6 +101,32 @@ def action(message: Message):
     return acts.replace('/', '#').replace(f'@{bot_name}', '').replace(str(config_dict['CMD_SUFFIX']), '').lower()
 
 
+def _format_stream_details(stream):
+    """Formats stream details for display."""
+    details = f"  - Index: {stream.get('index')}, Codec: {stream.get('codec_name')} ({stream.get('codec_long_name')})"
+    if stream.get('codec_type') == 'video':
+        details += f", Resolution: {stream.get('width')}x{stream.get('height')}"
+    if stream.get('codec_type') == 'audio':
+        lang = stream.get('tags', {}).get('language', 'N/A')
+        details += f", Language: {lang.upper()}"
+    return details
+
+def _get_video_stream_info(task):
+    """Gets formatted video stream information."""
+    if not task.streams_kept:
+        return ""
+
+    msg = "\n\n<b>Video Processing Info:</b>"
+    msg += "\n<b>Streams Kept:</b>"
+    for stream in task.streams_kept:
+        msg += f"\n{_format_stream_details(stream)}"
+
+    if task.streams_removed:
+        msg += "\n\n<b>Streams Removed:</b>"
+        for stream in task.streams_removed:
+            msg += f"\n{_format_stream_details(stream)}"
+    return msg
+
 def get_readable_message(sid: int, is_user: bool, page_no: int=1, status : str='All', page_step: int=1):
     msg = "<b>Powered By TeamLeech</b>\n\n"
     dl_speed = up_speed = 0
@@ -185,6 +186,8 @@ def get_readable_message(sid: int, is_user: bool, page_no: int=1, status : str='
         else:
             msg += (f'\n<b>├ Size:</b> {task.size()}'
                     f'\n<b>├ Elapsed:</b> {task.elapsed() or "~"}')
+        if hasattr(task, '_listener') and hasattr(task._listener, 'streams_kept'):
+            msg += _get_video_stream_info(task)
         msg += f'{ext_msg}\n<b>└ </b><code>/{BotCommands.CancelTaskCommand} {task.gid()}</code>\n\n'
 
     if not msg:

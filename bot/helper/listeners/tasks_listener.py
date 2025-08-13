@@ -20,6 +20,7 @@ from bot.helper.ext_utils.shortenurl import short_url
 from bot.helper.ext_utils.status_utils import action, get_date_time, get_readable_file_size, get_readable_time
 from bot.helper.ext_utils.task_manager import start_from_queued, check_running_tasks
 from bot.helper.ext_utils.telegraph_helper import TelePost
+from bot.helper.ext_utils.message_formatter import format_message, format_split_message
 from bot.helper.mirror_utils.gdrive_utlis.upload import gdUpload
 from bot.helper.mirror_utils.rclone_utils.transfer import RcloneTransferHelper
 from bot.helper.mirror_utils.status_utils.gdrive_status import GdriveStatus
@@ -150,37 +151,14 @@ class TaskListener(TaskConfig):
              pass
 
         if self.vidMode and self.isLeech:
-            video_files = []
-            if await aiopath.isfile(up_path):
-                if (await get_document_type(up_path))[0]:
-                    video_files.append(up_path)
-            else:
-                for dirpath, _, files in await sync_to_async(walk, up_path):
-                    for file in natsorted(files):
-                        file_path = ospath.join(dirpath, file)
-                        if (await get_document_type(file_path))[0]:
-                            video_files.append(file_path)
-
-            if not video_files:
-                await self.onUploadError("No video files found to process.")
-                return
-
-            for video_file in video_files:
-                processed_path = await process_video(video_file, self)
-                if not processed_path:
-                    LOGGER.error(f"Video processing failed for {video_file}")
-                    continue
-
-            up_dir = self.dir
-            self.name = ospath.basename(up_dir)
-            size = await get_path_size(up_dir)
-
-            LOGGER.info(f'Leech Name: {self.name}')
-            tg = TgUploader(self, up_dir, size)
-            async with task_dict_lock:
-                task_dict[self.mid] = TelegramStatus(self, tg, size, self.gid, 'up')
-            await gather(update_status_message(self.message.chat.id), tg.upload([], []))
-            return
+            is_video = (await get_document_type(up_path))[0]
+            if is_video:
+                processed_path = await process_video(up_path, self)
+                if processed_path:
+                    up_path = processed_path
+                else:
+                    # process_video returned None, an error occurred and was sent.
+                    return
 
         if not self.compress and not self.extract and not self.vidMode:
             up_path = await self.preName(up_path)
@@ -255,7 +233,6 @@ class TaskListener(TaskConfig):
         daily_size = size
         size = get_readable_file_size(size)
         reply_to = self.message.reply_to_message
-        images = choice(config_dict['IMAGE_COMPLETE'].split())
         TIME_ZONE_TITLE = config_dict['TIME_ZONE_TITLE']
         if (chat_id := config_dict['LINK_LOG']) and self.isSuperChat:
             msg = ('<b>LINK LOGS</b>\n'
@@ -283,39 +260,12 @@ class TaskListener(TaskConfig):
                 await sendMedia(msg, chat_id, reply_to)
             else:
                 await sendCustom(msg, chat_id)
-        msg += f'<code>{escape(self.name)}</code>\n'
-        msg += f'<b>┌ Size: </b>{size}\n'
         if hasattr(self, 'streams_kept') and self.isLeech:
-            msg = '<b>Video Processing Complete</b>\n\n'
-            msg += f"<b>Name:</b> <code>{escape(self.name)}</code>\n"
-            msg += f"<b>Size:</b> {size}\n\n"
-
-            msg += "<b>Streams Kept:</b>\n"
-            video_stream = self.streams_kept[0]
-            msg += f"  - Video: #{video_stream['index']} ({video_stream.get('codec_name')}, {video_stream.get('width')}x{video_stream.get('height')})\n"
-            for stream in self.streams_kept:
-                if stream['codec_type'] == 'audio':
-                    lang = stream.get('tags', {}).get('language', 'und')
-                    msg += f"  - Audio: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
-                elif stream['codec_type'] == 'subtitle':
-                    lang = stream.get('tags', {}).get('language', 'und')
-                    msg += f"  - Subtitle: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
-
-            if hasattr(self, 'streams_removed') and self.streams_removed:
-                msg += "\n<b>Streams Removed:</b>\n"
-                for stream in self.streams_removed:
-                    if stream['codec_type'] == 'audio':
-                        lang = stream.get('tags', {}).get('language', 'und')
-                        msg += f"  - Audio: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
-                    elif stream['codec_type'] == 'subtitle':
-                        lang = stream.get('tags', {}).get('language', 'und')
-                        msg += f"  - Subtitle: #{stream['index']} ({stream.get('codec_name')}, {lang})\n"
-
-            if link:
-                buttons.button_link('Download', link)
-
-            uploadmsg = await sendingMessage(msg, self.message, images, buttons.build_menu(2))
+            msg = await format_message(self, daily_size, link)
+            await sendMessage(msg, self.message)
         elif self.isLeech:
+            msg += f'<code>{escape(self.name)}</code>\n'
+            msg += f'<b>┌ Size: </b>{size}\n'
             if config_dict['SOURCE_LINK']:
                 scr_link = get_link(self.message)
                 if is_magnet(scr_link):
@@ -338,7 +288,7 @@ class TaskListener(TaskConfig):
                 #    f'<b>└ At: </b>{dt_time} ({TIME_ZONE_TITLE})\n\n')
             ONCOMPLETE_LEECH_LOG = config_dict['ONCOMPLETE_LEECH_LOG']
             if not files:
-                uploadmsg = await sendingMessage(msg, self.message, images, buttons.build_menu(2))
+                uploadmsg = await sendMessage(msg, self.message, buttons.build_menu(2))
                 if self.user_dict.get('enable_pm') and self.isSuperChat:
                     if reply_to and is_media(reply_to):
                         await sendMedia(msg, self.user_id, reply_to, buttons_scr.build_menu(2))
@@ -347,38 +297,15 @@ class TaskListener(TaskConfig):
                 if (chat_id := config_dict['LEECH_LOG']) and ONCOMPLETE_LEECH_LOG:
                     await copyMessage(chat_id, uploadmsg, buttons_scr.build_menu(2))
             else:
-                result_msg = 0
-                fmsg = '<b>Leech File(s):</b>\n'
-                for index, (tlink, name) in enumerate(files.items(), start=1):
-                    fmsg += f'{index}. <a href="{tlink}">{name}</a>\n'
-                    limit.text(fmsg + msg)
-                    if len(msg + fmsg) - limit.total > 4090:
-                        uploadmsg = await sendMessage(msg + fmsg, self.message, buttons.build_menu(2))
-                        await sleep(1)
-                        if self.user_dict.get('enable_pm') and self.isSuperChat:
-                            if reply_to and is_media(reply_to) and result_msg == 0:
-                                await sendMedia(msg + fmsg, self.user_id, reply_to, buttons_scr.build_menu(2))
-                                result_msg += 1
-                            else:
-                                await copyMessage(self.user_id, uploadmsg, buttons_scr.build_menu(2))
-                        if (chat_id := config_dict['LEECH_LOG']) and ONCOMPLETE_LEECH_LOG:
-                            await copyMessage(chat_id, uploadmsg, buttons_scr.build_menu(2))
-                        if self.isSuperChat and (stime := config_dict['AUTO_DELETE_UPLOAD_MESSAGE_DURATION']):
-                            bot_loop.create_task(auto_delete_message(uploadmsg, stime=stime))
-                        fmsg = ''
-                if fmsg != '':
-                    limit.text(msg + fmsg)
-                    if len(msg + fmsg) - limit.total > 1024:
-                        uploadmsg = await sendMessage(msg + fmsg, self.message, buttons.build_menu(2))
+                msg = await format_split_message(self, daily_size, files)
+                uploadmsg = await sendMessage(msg, self.message)
+                if self.user_dict.get('enable_pm') and self.isSuperChat:
+                    if reply_to and is_media(reply_to):
+                        await sendMedia(msg, self.user_id, reply_to)
                     else:
-                        uploadmsg = await sendingMessage(msg + fmsg, self.message, images, buttons.build_menu(2))
-                    if self.user_dict.get('enable_pm') and self.isSuperChat:
-                        if reply_to and is_media(reply_to):
-                            await sendMedia(msg + fmsg, self.user_id, reply_to, buttons_scr.build_menu(2))
-                        else:
-                            await copyMessage(self.user_id, uploadmsg, buttons_scr.build_menu(2))
-                    if (chat_id := config_dict['LEECH_LOG']) and ONCOMPLETE_LEECH_LOG:
-                        await copyMessage(chat_id, uploadmsg, buttons_scr.build_menu(2))
+                        await copyMessage(self.user_id, uploadmsg)
+                if (chat_id := config_dict['LEECH_LOG']) and ONCOMPLETE_LEECH_LOG:
+                    await copyMessage(chat_id, uploadmsg)
                 if STICKERID_LEECH := config_dict['STICKERID_LEECH']:
                     await sendSticker(STICKERID_LEECH, self.message)
             if self.seed:
@@ -458,7 +385,7 @@ class TaskListener(TaskConfig):
                     buttons.button_link('Source Link', scr_link)
             if config_dict['SAVE_MESSAGE'] and self.isSuperChat:
                 buttons.button_data('Save Message', 'save', 'footer')
-            uploadmsg = await sendingMessage(msg, self.message, images, buttons.build_menu(2))
+            uploadmsg = await sendMessage(msg, self.message, buttons.build_menu(2))
             if STICKERID_MIRROR := config_dict['STICKERID_MIRROR']:
                 await sendSticker(STICKERID_MIRROR, self.message)
             if chat_id := config_dict['MIRROR_LOG']:
@@ -552,7 +479,7 @@ class TaskListener(TaskConfig):
         if listfile:
             await sendFile(self.message, listfile, msg, config_dict['IMAGE_HTML'])
         else:
-            await sendingMessage(msg, self.message, choice(config_dict['IMAGE_COMPLETE'].split()))
+            await sendMessage(msg, self.message)
 
         if sticker := config_dict['STICKERID_MIRROR'] if 'already in drive' in error.lower() else config_dict['STICKERID_ERROR']:
             await sendSticker(sticker, self.message)
@@ -626,7 +553,7 @@ class TaskListener(TaskConfig):
             buttons.button_link('GoFile Link', self.isGofile)
             if config_dict['SAVE_MESSAGE'] and self.isSuperChat:
                 buttons.button_data('Save Message', 'save', 'footer')
-        await sendingMessage(msg, self.message, choice(config_dict['IMAGE_COMPLETE'].split()), buttons.build_menu(1))
+        await sendMessage(msg, self.message, buttons.build_menu(1))
 
         if sticker := config_dict['STICKERID_MIRROR'] if any(x in error for x in ['Seeding', 'Downloaded']) else config_dict['STICKERID_ERROR']:
             await sendSticker(sticker, self.message)

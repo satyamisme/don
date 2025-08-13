@@ -145,6 +145,8 @@ async def get_user_settings(from_user, data: str, uset_data: str):
                 f'<b>┃ </b>Session String: <b>{sesmsg}</b>\n'
                 f'<b>┃ </b>Default Upload: <b>{du}</b>\n'
                 f'<b>┃ </b>YT-DLP Options: {yto}\n\n')
+        UPLOAD_MODE = user_dict.get('upload_mode', 'split')
+        buttons.button_data(f'Upload Mode: {UPLOAD_MODE.title()}', f'userset {user_id} upload_mode')
         text += f'<i>┖ Leech Split Size ~ {get_readable_file_size(config_dict["LEECH_SPLIT_SIZE"])}</i>'
         if user_dict.get('rclone_path', '').startswith('mrcc') and not await aiopath.exists(rclone_path):
             text += '\n<i>┖ Using custom rclone path but user rclone not found, mirror upload will fail!</i>'
@@ -464,6 +466,10 @@ async def edit_user_settings(client: Client, query: CallbackQuery):
             else:
                 await update_user_ldata(user_id, value[4:], '')
             await gather(query.answer(), update_user_settings(query, qdata, uset_data))
+        case 'upload_mode':
+            mode = 'userbot' if user_dict.get('upload_mode', 'split') == 'split' else 'split'
+            await update_user_ldata(user_id, 'upload_mode', mode)
+            await update_user_settings(query)
         case 'enable_pm' | 'enable_ss' | 'as_doc' | 'media_group' | 'fnamecap' | 'stop_duplicate' | 'use_sa' as value:
             qdata = uset_data = ''
             await update_user_ldata(user_id, value, not user_dict.get(value, False))

@@ -65,21 +65,26 @@ async def is_multi_streams(path):
 
 async def get_media_info(path):
     try:
-        result = await cmd_exec(['ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json', '-show_format', path])
+        result = await cmd_exec(['ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json', '-show_format', '-show_streams', path])
         if res := result[1]:
             LOGGER.warning('Get Media Info: %s', res)
+            return 0, None, None, None
     except Exception as e:
         LOGGER.error('Get Media Info: %s. Mostly File not found!', e)
-        return 0, None, None
-    fields = literal_eval(result[0]).get('format')
+        return 0, None, None, None
+
+    media_info = literal_eval(result[0])
+    fields = media_info.get('format')
+    streams = media_info.get('streams')
     if fields is None:
-        LOGGER.error('Get_media_info: %s', result)
-        return 0, None, None
+        LOGGER.error('Get_media_info: %s', media_info)
+        return 0, None, None, None
+
     duration = round(float(fields.get('duration', 0)))
     tags = fields.get('tags', {})
     artist = tags.get('artist') or tags.get('ARTIST') or tags.get('Artist')
     title = tags.get('title') or tags.get('TITLE') or tags.get('Title')
-    return duration, artist, title
+    return duration, artist, title, streams
 
 
 async def post_media_info(path: str, size: int, image=None, is_link=False):
@@ -232,11 +237,28 @@ async def split_file(path, size, dirpath, split_size, listener, obj, start_time=
                 LOGGER.warning('%s. Unable to split this video, if it\'s size less than {MAX_SPLIT_SIZE} will be uploaded as it is. Path: %s', stderr, path)
                 return 'errored'
             out_size = await get_path_size(out_path)
-            if out_size > listener.maxSplitSize:
+            while out_size > listener.maxSplitSize:
                 dif = out_size - listener.maxSplitSize
                 split_size -= dif + 5000000
                 await clean_target(out_path)
-                return await split_file(path, size, dirpath, split_size, listener, obj, start_time, i, True, )
+                LOGGER.info(f"Retrying split for {path} with new split size {split_size}")
+                cmd = [FFMPEG_NAME, '-hide_banner', '-loglevel', 'error', '-ss', str(start_time), '-i', path, '-fs', str(split_size),
+                       '-map', '0', '-map_chapters', '-1', '-async', '1', '-strict', '-2', '-c', 'copy', out_path]
+                if not multi_streams:
+                    del cmd[10:12]
+                async with subprocess_lock:
+                    if listener.suproc == 'cancelled':
+                        return False
+                    listener.suproc = await create_subprocess_exec(*cmd, stderr=PIPE)
+                _, stderr = await listener.suproc.communicate()
+                code = listener.suproc.returncode
+                if code == -9:
+                    return
+                if code != 0:
+                    stderr = stderr.decode().strip()
+                    LOGGER.warning('%s. Unable to split this video, if it\'s size less than {MAX_SPLIT_SIZE} will be uploaded as it is. Path: %s', stderr, path)
+                    return 'errored'
+                out_size = await get_path_size(out_path)
             lpd = (await get_media_info(out_path))[0]
             if lpd == 0:
                 LOGGER.error('Something went wrong while splitting, mostly file is corrupted. Path: %s', path)

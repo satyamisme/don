@@ -1,4 +1,5 @@
 from googleapiclient.errors import HttpError
+from json import loads
 from logging import getLogger
 from os import path as ospath
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type, RetryError
@@ -105,7 +106,7 @@ class gdClone(GoogleDriveHelper):
             return self.service.files().copy(fileId=file_id, body=body, supportsAllDrives=True).execute()
         except HttpError as err:
             if err.resp.get('content-type', '').startswith('application/json'):
-                reason = eval(err.content).get('error').get('errors')[0].get('reason')
+                reason = loads(err.content).get('error').get('errors')[0].get('reason')
                 if reason not in ['userRateLimitExceeded', 'dailyLimitExceeded', 'cannotCopyFile']:
                     raise err
                 if reason == 'cannotCopyFile':
