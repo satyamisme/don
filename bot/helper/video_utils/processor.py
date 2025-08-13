@@ -1,147 +1,238 @@
-from bot import config_dict, LOGGER, task_dict_lock, task_dict, bot_loop
-from bot.helper.ext_utils.files_utils import get_path_size
-from bot.helper.mirror_utils.status_utils.video_status import VideoStatus
-import asyncio
-import json
+# processor.py - Auto Track Removal with Priority & Native Language Support
+
+from __future__ import annotations
+from ast import literal_eval
+from asyncio import Event, wait_for, wrap_future, gather
+from functools import partial
+from pyrogram.filters import regex, user
+from pyrogram.handlers import CallbackQueryHandler
+from pyrogram.types import CallbackQuery
 from time import time
-import os.path as ospath
-from aiofiles.os import rename as aiorename
+from bot import VID_MODE
+from bot.helper.ext_utils.bot_utils import new_thread
+from bot.helper.ext_utils.status_utils import get_readable_file_size, get_readable_time
+from bot.helper.telegram_helper.button_build import ButtonMaker
+from bot.helper.telegram_helper.message_utils import sendMessage, editMessage, deleteMessage
+from bot.helper.video_utils import executor as exc
+import re
 
-async def get_media_info(path):
-    """Get media information using ffprobe."""
-    try:
-        process = await asyncio.create_subprocess_exec(
-            'ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json',
-            '-show_format', '-show_streams', path,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+class ExtraSelect:
+    def __init__(self, executor: exc.VidEcxecutor):
+        self._listener = executor.listener
+        self._time = time()
+        self._reply = None
+        self.executor = executor
+        self.event = Event()
+        self.is_cancel = False
+        self.extension: list[str] = [None, None, 'mkv']
+        self.status = ''
+        self.executor.streams_kept = []
+        self.executor.streams_removed = []
+
+    async def auto_select(self, streams):
+        from bot import config_dict, LOGGER
+
+        # Standard 2-letter → 3-letter ISO 639-2 mapping
+        ISO_LANG_MAP = {
+            'en': 'eng', 'hi': 'hin', 'te': 'tel', 'ta': 'tam', 'es': 'spa',
+            'fr': 'fra', 'de': 'deu', 'ja': 'jpn', 'ko': 'kor', 'zh': 'zho',
+            'ar': 'ara', 'ru': 'rus', 'pt': 'por', 'it': 'ita', 'nl': 'nld',
+            'sv': 'swe', 'pl': 'pol', 'tr': 'tur', 'el': 'ell', 'th': 'tha'
+        }
+
+        # Native script names → ISO 639-2 codes
+        NATIVE_LANG_MAP = {
+            # Telugu
+            'తెలుగు': 'tel', 'తెలుగు': 'tel',
+            # Hindi
+            'हिंदी': 'hin', 'हिन्दी': 'hin', 'हिंदी भाषा': 'hin',
+            # English
+            'ఇంగ్లీష్': 'eng', 'इंग्लिश': 'eng', 'English': 'eng', 'ఇంగ్లీష్': 'eng',
+            # Tamil
+            'தமிழ்': 'tam', 'தெலுங்கு': 'tel',
+            # Malayalam
+            'മലയാളം': 'mal',
+            # Kannada
+            'ಕನ್ನಡ': 'kan',
+            # Urdu
+            'اردو': 'urd',
+            # Bengali
+            'বাংলা': 'ben',
+        }
+
+        # Priority order
+        PRIORITY_LANGS = ['tel', 'hin', 'eng']
+
+        if not self.executor.data:
+            self.executor.data = {'stream': {}}
+
+        streams_to_remove = []
+        audio_streams = {}
+        other_streams = []
+
+        # Extract and normalize language from each stream
+        for stream in streams:
+            index = stream.get('index')
+            codec_type = stream.get('codec_type')
+            lang_tag = stream.get('tags', {}).get('language', 'und').lower()
+
+            # Normalize ISO 2-letter → 3-letter
+            lang = ISO_LANG_MAP.get(lang_tag, lang_tag)
+
+            # If still 'und', check full name in title or comment
+            if lang == 'und':
+                title = stream.get('tags', {}).get('title', '').strip()
+                description = stream.get('tags', {}).get('comment', '').strip()
+                full_text = f"{title} {description}".lower()
+
+                # Try to match native script names
+                for native_name, iso_code in NATIVE_LANG_MAP.items():
+                    if native_name in full_text or native_name.lower() in full_text:
+                        lang = iso_code
+                        LOGGER.info(f"Detected native language: '{native_name}' → {iso_code.upper()}")
+                        break
+
+            # Update stream with normalized language
+            stream['tags']['language'] = lang.lower()
+
+            self.executor.data['stream'][index] = {
+                'map': index,
+                'type': codec_type,
+                'lang': lang.lower()
+            }
+
+            if codec_type == 'audio':
+                audio_streams[index] = stream
+            else:
+                other_streams.append(stream)
+
+        # === PRIORITY LOGIC ===
+        selected_lang = None
+        for lang in PRIORITY_LANGS:
+            if any(s['tags']['language'] == lang for s in audio_streams.values()):
+                selected_lang = lang
+                break
+
+        if selected_lang:
+            LOGGER.info(f"Auto-select: Selected language '{selected_lang.upper()}' based on priority.")
+            for index, stream in audio_streams.items():
+                if stream['tags']['language'] == selected_lang:
+                    self.executor.streams_kept.append(stream)
+                else:
+                    streams_to_remove.append(index)
+                    self.executor.streams_removed.append(stream)
+        else:
+            # No Tel/Hin/Eng → keep all audio
+            LOGGER.info("Auto-select: No priority language found. Keeping all audio tracks.")
+            self.executor.streams_kept.extend(audio_streams.values())
+
+        # Always keep video and subtitles
+        self.executor.streams_kept.extend(other_streams)
+
+        # Finalize removal list
+        self.executor.data['sdata'] = streams_to_remove
+        self.event.set()
+
+    @new_thread
+    async def _event_handler(self):
+        pfunc = partial(cb_extra, obj=self)
+        handler = self._listener.client.add_handler(
+            CallbackQueryHandler(pfunc, filters=regex('^extra') & user(self._listener.user_id)),
+            group=-1
         )
-        stdout, stderr = await process.communicate()
-        if process.returncode != 0:
-            LOGGER.error(f"ffprobe error: {stderr.decode().strip()}")
-            return None
-        return json.loads(stdout)
-    except Exception as e:
-        LOGGER.error(f"Exception while getting media info: {e}")
-        return None
+        try:
+            await wait_for(self.event.wait(), timeout=180)
+        except:
+            pass
+        finally:
+            self._listener.client.remove_handler(*handler)
 
-async def run_ffmpeg(command, path, listener):
-    """Run the generated ffmpeg command and report progress."""
-    total_size = await get_path_size(path)
-    media_info = await get_media_info(path)
-    total_duration = float(media_info['format'].get('duration', 1))
+    async def update_message(self, text: str, buttons):
+        if not self._reply:
+            self._reply = await sendMessage(text, self._listener.message, buttons)
+        else:
+            await editMessage(text, self._reply, buttons)
 
-    process = await asyncio.create_subprocess_exec(
-        *command,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-    )
+    def streams_select(self, streams: dict = None):
+        # This is only for manual selection. We skip it in auto-mode.
+        buttons = ButtonMaker()
+        if not self.executor.data:
+            self.executor.data.setdefault('stream', {})
+            self.executor.data['sdata'] = []
+            for stream in streams:
+                index = stream.get('index')
+                codec_type = stream.get('codec_type')
+                lang = stream.get('tags', {}).get('language', 'und').lower()
+                if codec_type not in ['video', 'audio', 'subtitle']:
+                    continue
+                self.executor.data['stream'][index] = {
+                    'info': f'{codec_type.title()} ~ {lang.upper()}',
+                    'map': index,
+                    'type': codec_type,
+                    'lang': lang
+                }
+                if codec_type == 'audio':
+                    self.executor.data['is_audio'] = True
+                elif codec_type == 'subtitle':
+                    self.executor.data['is_sub'] = True
 
-    status = VideoStatus(listener, total_size, listener.mid, process)
-    async with task_dict_lock:
-        task_dict[listener.mid] = status
+        mode = self.executor.mode
+        ddict = self.executor.data
 
-    async def _log_stderr():
-        async for line in process.stderr:
-            LOGGER.info(f"ffmpeg: {line.decode().strip()}")
+        for key, value in ddict['stream'].items():
+            if mode == 'extract':
+                buttons.button_data(value['info'], f'extra {mode} {key}')
+            else:
+                if value['type'] != 'video':
+                    buttons.button_data(value['info'], f'extra {mode} {key}')
 
-    stderr_task = bot_loop.create_task(_log_stderr())
-    await process.wait()
-    stderr_task.cancel()
+        text = (f'<b>STREAM REMOVE SETTINGS ~ {self._listener.tag}</b>\n'
+                f'<code>{self.executor.name}</code>\n'
+                f'File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n')
 
-    if process.returncode == 0:
-        LOGGER.info(f"Video processing successful: {command[-1]}")
-        return command[-1]
-    else:
-        LOGGER.error(f"ffmpeg exited with non-zero return code: {process.returncode}")
-        await listener.onUploadError(f"ffmpeg exited with non-zero return code: {process.returncode}")
-        return None
+        if sdata := ddict.get('sdata'):
+            text += 'Stream will be removed:\n'
+            for i, sindex in enumerate(sdata, 1):
+                info = ddict['stream'][sindex]['info']
+                text += f"{i}. {info.replace('✅ ', '')}\n"
 
-async def process_video(path, listener):
-    """Main function to process the video based on user's final logic."""
+        text += 'Select available stream below!\n'
+        text += f'<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
 
-    listener.original_name = ospath.basename(path)
-    media_info = await get_media_info(path)
-    if not media_info or 'streams' not in media_info:
-        await listener.onUploadError("Could not get media info from the input file.")
-        return None
+        if mode == 'extract':
+            buttons.button_data('Extract All', f'extra {mode} video audio subtitle')
+            buttons.button_data('ALT Mode', f"extra {mode} alt {ddict.get('alt_mode', False)}", 'footer')
+            for ext in self.extension:
+                buttons.button_data(ext.upper(), f'extra {mode} extension {ext}', 'header')
+        else:
+            buttons.button_data('Reset', f'extra {mode} reset', 'header')
+            buttons.button_data('Reverse', f'extra {mode} reverse', 'header')
+            buttons.button_data('Continue', f'extra {mode} continue', 'footer')
+            if ddict.get('is_audio'):
+                buttons.button_data('All Audio', f'extra {mode} audio')
+            if ddict.get('is_sub'):
+                buttons.button_data('All Subs', f'extra {mode} subtitle')
 
-    all_streams = media_info['streams']
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+        return text, buttons.build_menu(2)
 
-    all_video_streams = [s for s in all_streams if s.get('codec_type') == 'video']
-    audio_streams_to_process = [s for s in all_streams if s.get('codec_type') == 'audio']
+    async def rmstream_select(self, streams: dict):
+        # Auto-select runs only if no manual selection exists
+        if not self.executor.data:
+            await self.auto_select(streams)
+        await self.update_message(*self.streams_select(streams))
 
-    art_streams = [s for s in all_video_streams if s.get('disposition', {}).get('attached_pic')]
-    main_video_streams = [s for s in all_video_streams if not s.get('disposition', {}).get('attached_pic')]
+    async def get_buttons(self, *args):
+        # Skip UI if auto-select already ran
+        if not self.executor.data:
+            future = self._event_handler()
+            if extra_mode := getattr(self, f'{self.executor.mode}_select', None):
+                await extra_mode(*args)
+            await wrap_future(future)
+        else:
+            self.event.set()  # Skip UI
 
-    lang_string = config_dict.get('PREFERRED_LANGUAGES', 'eng,hin,tel')
-    preferred_langs = [lang.strip().strip('"\'') for lang in lang_string.split(',')]
-    LOGGER.info(f"Cleaned Preferred Languages: {preferred_langs}")
-    selected_audio = []
-    found_preferred = False
-    for lang in preferred_langs:
-        lang_streams = [s for s in audio_streams_to_process if s.get('tags', {}).get('language') == lang]
-        if lang_streams:
-            selected_audio = lang_streams
-            found_preferred = True
-            break
-
-    has_subtitles = any(s.get('codec_type') == 'subtitle' for s in all_streams)
-
-    if not found_preferred and not has_subtitles:
-        LOGGER.info("No preferred audio languages found and no subtitles to remove. Skipping processing.")
-        listener.streams_kept = main_video_streams + audio_streams_to_process
-        listener.streams_removed = [s for s in all_streams if s.get('codec_type') == 'subtitle']
-        listener.art_streams = art_streams
-        return path
-
-    if not found_preferred:
-        selected_audio = audio_streams_to_process
-
-    cmd = ['ffmpeg', '-i', path]
-    streams_to_keep_in_ffmpeg = all_video_streams + selected_audio
-    for stream in streams_to_keep_in_ffmpeg:
-        cmd.extend(['-map', f'0:{stream["index"]}'])
-
-    cmd.extend(['-c', 'copy'])
-    cmd.extend(['-avoid_negative_ts', 'make_zero', '-fflags', '+genpts'])
-    cmd.extend(['-max_interleave_delta', '0'])
-
-    base_name, _ = path.rsplit('.', 1)
-    output_path = f"{base_name}.processed.mkv"
-    cmd.extend(['-f', 'matroska', '-y', output_path])
-
-    processed_path = await run_ffmpeg(cmd, path, listener)
-
-    if processed_path:
-        final_path = processed_path.replace('.processed.mkv', '.mkv')
-        await aiorename(processed_path, final_path)
-
-        listener.streams_kept = main_video_streams + selected_audio
-        listener.art_streams = art_streams
-
-        kept_indices = {s['index'] for s in listener.streams_kept + listener.art_streams}
-        listener.streams_removed = [s for s in all_streams if s['index'] not in kept_indices]
-
-        return final_path
-
-    return None
-
-async def get_metavideo(url):
-    """Get media metadata from a URL using ffprobe."""
-    try:
-        process = await asyncio.create_subprocess_exec(
-            'ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json',
-            '-show_format', url,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await process.communicate()
-        if process.returncode != 0:
-            LOGGER.error(f"ffprobe error for URL {url}: {stderr.decode().strip()}")
-            return None, None
-        media_info = json.loads(stdout)
-        duration = media_info.get('format', {}).get('duration', 0)
-        size = media_info.get('format', {}).get('size', 0)
-        return duration, {'size': size}
-    except Exception as e:
-        LOGGER.error(f"Exception while getting media metadata for URL {url}: {e}")
-        return None, None
+        await deleteMessage(self._reply)
+        if self.is_cancel:
+            self._listener.suproc = 'cancelled'
+            await self._listener.onUploadError(f'{VID_MODE[self.executor.mode]} stopped by user!')
