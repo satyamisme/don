@@ -1,4 +1,5 @@
-# processor.py - Auto Track Removal with Priority & Native Language Support
+# processor.py - Auto Track Removal with Language Priority & Native Script Support
+# Compatible with: executor.py, tasks_listener.py, extra_selector.py
 
 from __future__ import annotations
 from ast import literal_eval
@@ -14,42 +15,6 @@ from bot.helper.ext_utils.status_utils import get_readable_file_size, get_readab
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.message_utils import sendMessage, editMessage, deleteMessage
 from bot.helper.video_utils import executor as exc
-from bot.helper.video_utils.executor import get_metavideo
-import re
-
-async def process_video(path, listener):
-    """
-    Process video to remove unwanted audio tracks based on language priority.
-    This function is non-interactive and designed to be called from the TaskListener.
-    """
-    metadata = await get_metavideo(path)
-    if not metadata or not metadata[0]:
-        await listener.onUploadError("Failed to get video metadata.")
-        return None
-
-    # Set listener.vidMode to the tuple format expected by the executor
-    listener.vidMode = ('rmstream', listener.name, {})
-
-    executor = exc.VidEcxecutor(listener, path, listener.gid)
-
-    selector = ExtraSelect(executor)
-    await selector.auto_select(metadata[0]) # metadata[0] contains the streams
-
-    # The auto_select method populates executor.data['sdata'] with streams to remove.
-    # The execute method on the executor will use this data.
-
-    # We need to ensure the executor knows which streams to remove.
-    # The auto_select method should handle this by modifying the executor's state.
-
-    # Now, we can call the executor's main method to perform the operation
-    # The `execute` method in VidEcxecutor should handle the 'rmstream' case.
-    processed_path = await executor.execute()
-
-    if executor.is_cancel:
-        return None
-
-    return processed_path
-
 
 class ExtraSelect:
     def __init__(self, executor: exc.VidEcxecutor):
@@ -65,9 +30,9 @@ class ExtraSelect:
         self.executor.streams_removed = []
 
     async def auto_select(self, streams):
-        from bot import config_dict, LOGGER
+        from bot import config_dict
 
-        # Standard 2-letter → 3-letter ISO 639-2 mapping
+        # ISO 639-1 → 639-2 mapping
         ISO_LANG_MAP = {
             'en': 'eng', 'hi': 'hin', 'te': 'tel', 'ta': 'tam', 'es': 'spa',
             'fr': 'fra', 'de': 'deu', 'ja': 'jpn', 'ko': 'kor', 'zh': 'zho',
@@ -75,28 +40,29 @@ class ExtraSelect:
             'sv': 'swe', 'pl': 'pol', 'tr': 'tur', 'el': 'ell', 'th': 'tha'
         }
 
-        # Native script names → ISO 639-2 codes
+        # Native script names → ISO 639-2
         NATIVE_LANG_MAP = {
-            # Telugu
             'తెలుగు': 'tel', 'తెలుగు': 'tel',
-            # Hindi
-            'हिंदी': 'hin', 'हिन्दी': 'hin', 'हिंदी भाषा': 'hin',
-            # English
-            'ఇంగ్లీష్': 'eng', 'इंग्लिश': 'eng', 'English': 'eng', 'ఇంగ్లీష్': 'eng',
-            # Tamil
-            'தமிழ்': 'tam', 'தெலுங்கு': 'tel',
-            # Malayalam
-            'മലയാളം': 'mal',
-            # Kannada
-            'ಕನ್ನಡ': 'kan',
-            # Urdu
-            'اردو': 'urd',
-            # Bengali
-            'বাংলা': 'ben',
+            'హిందీ': 'hin', 'हिंदी': 'hin', 'हिन्दी': 'hin',
+            'ఇంగ్లీష్': 'eng', 'इंग्लिश': 'eng', 'English': 'eng',
+            'தமிழ்': 'tam', 'മലയാളം': 'mal', 'ಕನ್ನಡ': 'kan',
+            'اردو': 'urd', 'বাংলা': 'ben'
         }
 
         # Priority order
         PRIORITY_LANGS = ['tel', 'hin', 'eng']
+
+        # Auto-parse PREFERRED_LANGUAGES or fallback
+        raw_preferred = config_dict.get('PREFERRED_LANGUAGES', 'te,hi,en')
+        if not raw_preferred.strip():
+            raw_preferred = 'te,hi,en'
+
+        # Normalize to 3-letter codes
+        preferred_langs = [
+            ISO_LANG_MAP.get(lang.strip().lower(), lang.strip().lower())
+            for lang in raw_preferred.split(',') if lang.strip()
+        ]
+        PRIORITY_LANGS = [ISO_LANG_MAP.get(lang, lang) for lang in preferred_langs]
 
         if not self.executor.data:
             self.executor.data = {'stream': {}}
@@ -105,35 +71,29 @@ class ExtraSelect:
         audio_streams = {}
         other_streams = []
 
-        # Extract and normalize language from each stream
+        # Process each stream
         for stream in streams:
             index = stream.get('index')
             codec_type = stream.get('codec_type')
             lang_tag = stream.get('tags', {}).get('language', 'und').lower()
 
-            # Normalize ISO 2-letter → 3-letter
+            # Normalize ISO code
             lang = ISO_LANG_MAP.get(lang_tag, lang_tag)
 
-            # If still 'und', check full name in title or comment
+            # If still 'und', check native script in title/comment
             if lang == 'und':
                 title = stream.get('tags', {}).get('title', '').strip()
-                description = stream.get('tags', {}).get('comment', '').strip()
-                full_text = f"{title} {description}".lower()
+                comment = stream.get('tags', {}).get('comment', '').strip()
+                full_text = f"{title} {comment}".lower()
 
-                # Try to match native script names
                 for native_name, iso_code in NATIVE_LANG_MAP.items():
                     if native_name in full_text or native_name.lower() in full_text:
                         lang = iso_code
-                        LOGGER.info(f"Detected native language: '{native_name}' → {iso_code.upper()}")
                         break
 
-            # Update stream with normalized language
             stream['tags']['language'] = lang.lower()
-
             self.executor.data['stream'][index] = {
-                'map': index,
-                'type': codec_type,
-                'lang': lang.lower()
+                'map': index, 'type': codec_type, 'lang': lang.lower()
             }
 
             if codec_type == 'audio':
@@ -141,7 +101,7 @@ class ExtraSelect:
             else:
                 other_streams.append(stream)
 
-        # === PRIORITY LOGIC ===
+        # === Priority Logic ===
         selected_lang = None
         for lang in PRIORITY_LANGS:
             if any(s['tags']['language'] == lang for s in audio_streams.values()):
@@ -149,7 +109,6 @@ class ExtraSelect:
                 break
 
         if selected_lang:
-            LOGGER.info(f"Auto-select: Selected language '{selected_lang.upper()}' based on priority.")
             for index, stream in audio_streams.items():
                 if stream['tags']['language'] == selected_lang:
                     self.executor.streams_kept.append(stream)
@@ -157,14 +116,13 @@ class ExtraSelect:
                     streams_to_remove.append(index)
                     self.executor.streams_removed.append(stream)
         else:
-            # No Tel/Hin/Eng → keep all audio
-            LOGGER.info("Auto-select: No priority language found. Keeping all audio tracks.")
+            # No priority language → keep all audio
             self.executor.streams_kept.extend(audio_streams.values())
 
         # Always keep video and subtitles
         self.executor.streams_kept.extend(other_streams)
 
-        # Finalize removal list
+        # Finalize
         self.executor.data['sdata'] = streams_to_remove
         self.event.set()
 
@@ -189,7 +147,6 @@ class ExtraSelect:
             await editMessage(text, self._reply, buttons)
 
     def streams_select(self, streams: dict = None):
-        # This is only for manual selection. We skip it in auto-mode.
         buttons = ButtonMaker()
         if not self.executor.data:
             self.executor.data.setdefault('stream', {})
@@ -252,22 +209,32 @@ class ExtraSelect:
         return text, buttons.build_menu(2)
 
     async def rmstream_select(self, streams: dict):
-        # Auto-select runs only if no manual selection exists
         if not self.executor.data:
             await self.auto_select(streams)
         await self.update_message(*self.streams_select(streams))
 
     async def get_buttons(self, *args):
-        # Skip UI if auto-select already ran
         if not self.executor.data:
             future = self._event_handler()
             if extra_mode := getattr(self, f'{self.executor.mode}_select', None):
                 await extra_mode(*args)
             await wrap_future(future)
         else:
-            self.event.set()  # Skip UI
+            self.event.set()
 
         await deleteMessage(self._reply)
         if self.is_cancel:
             self._listener.suproc = 'cancelled'
             await self._listener.onUploadError(f'{VID_MODE[self.executor.mode]} stopped by user!')
+
+
+# === Required by tasks_listener.py ===
+# DO NOT REMOVE — this function is imported in tasks_listener.py
+async def process_video(path: str, listener):
+    """
+    Entry point for video processing.
+    Called from tasks_listener.py when vidMode and isLeech.
+    """
+    from bot.helper.video_utils.executor import VidEcxecutor
+    executor = VidEcxecutor(listener, path, listener.gid(), metadata=False)
+    return await executor.execute()
