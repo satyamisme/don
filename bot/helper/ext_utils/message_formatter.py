@@ -125,7 +125,7 @@ async def format_message(listener, size, link=None):
     if link:
         footer += f" | 🔗 [Download]({link})"
 
-    footer += f" | ⚡ #{'leech' if listener.isLeech else 'mirror'} | 👤 {listener.tag} | 🤖 @{bot_name}"
+    footer += f" | ⚡ #{'leech' if listener.isLeech else 'mirror'} | 👤 {listener.tag} | 🤖 @{bot_name} | v2.1-debug"
     msg.append(footer)
 
     return "\n".join(msg)
