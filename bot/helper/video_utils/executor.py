@@ -331,6 +331,28 @@ class VidEcxecutor(FFProgress):
         if not self.data:
             return self._up_path
 
+        all_streams = streams
+        removed_indices = self.data.get('sdata', [])
+
+        kept_streams = []
+        removed_streams = []
+        art_streams = []
+
+        for stream in all_streams:
+            is_art = stream.get('disposition', {}).get('attached_pic')
+            if is_art:
+                art_streams.append(stream)
+
+            if stream.get('index') in removed_indices:
+                removed_streams.append(stream)
+            else:
+                if not is_art:
+                    kept_streams.append(stream)
+
+        self.listener.streams_kept = kept_streams
+        self.listener.streams_removed = removed_streams
+        self.listener.art_streams = art_streams
+
         self.outfile = self._up_path
         for file in file_list:
             self.path = file

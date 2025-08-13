@@ -59,6 +59,10 @@ async def run_ffmpeg(command, path, listener):
 async def process_video(path, listener):
     """Main function to process the video based on user's final logic."""
 
+    if hasattr(listener, 'streams_kept') and listener.streams_kept:
+        LOGGER.info("Streams already processed by manual selection, skipping automatic processing.")
+        return path
+
     listener.original_name = ospath.basename(path)
     media_info = await get_media_info(path)
     if not media_info or 'streams' not in media_info:
@@ -67,38 +71,59 @@ async def process_video(path, listener):
 
     all_streams = media_info['streams']
 
+    # Language mapping
+    lang_map = {
+        'te': 'tel', 'tel': 'tel', 'telugu': 'tel', 'తెలుగు': 'tel',
+        'hi': 'hin', 'hin': 'hin', 'hindi': 'hin', 'हिंदी': 'hin',
+        'en': 'eng', 'eng': 'eng', 'english': 'eng',
+    }
+
+    def get_lang_code(stream):
+        tags = stream.get('tags', {})
+        lang = tags.get('language', '').lower()
+        title = tags.get('title', '').lower()
+
+        if lang in lang_map:
+            return lang_map[lang]
+
+        for key, value in lang_map.items():
+            if key in title:
+                return value
+        return lang
+
     all_video_streams = [s for s in all_streams if s.get('codec_type') == 'video']
     audio_streams_to_process = [s for s in all_streams if s.get('codec_type') == 'audio']
 
     art_streams = [s for s in all_video_streams if s.get('disposition', {}).get('attached_pic')]
     main_video_streams = [s for s in all_video_streams if not s.get('disposition', {}).get('attached_pic')]
 
-    lang_string = config_dict.get('PREFERRED_LANGUAGES', 'eng,hin,tel')
+    lang_string = config_dict.get('PREFERRED_LANGUAGES', 'tel,hin,eng')
     preferred_langs = [lang.strip().strip('"\'') for lang in lang_string.split(',')]
-    LOGGER.info(f"Cleaned Preferred Languages: {preferred_langs}")
+
     selected_audio = []
     found_preferred = False
-    for lang in preferred_langs:
-        lang_streams = [s for s in audio_streams_to_process if s.get('tags', {}).get('language') == lang]
+
+    for pref_lang in preferred_langs:
+        lang_streams = [s for s in audio_streams_to_process if get_lang_code(s) == pref_lang]
         if lang_streams:
-            selected_audio = lang_streams
+            selected_audio.extend(lang_streams)
             found_preferred = True
             break
-
-    has_subtitles = any(s.get('codec_type') == 'subtitle' for s in all_streams)
-
-    if not found_preferred and not has_subtitles:
-        LOGGER.info("No preferred audio languages found and no subtitles to remove. Skipping processing.")
-        listener.streams_kept = main_video_streams + audio_streams_to_process
-        listener.streams_removed = [s for s in all_streams if s.get('codec_type') == 'subtitle']
-        listener.art_streams = art_streams
-        return path
 
     if not found_preferred:
         selected_audio = audio_streams_to_process
 
+    streams_to_keep_in_ffmpeg = main_video_streams + art_streams + selected_audio
+
+    subtitle_streams = [s for s in all_streams if s.get('codec_type') == 'subtitle']
+    if len(streams_to_keep_in_ffmpeg) == len(all_streams) - len(subtitle_streams):
+         LOGGER.info("No streams to remove, skipping processing.")
+         listener.streams_kept = main_video_streams + selected_audio
+         listener.streams_removed = subtitle_streams
+         listener.art_streams = art_streams
+         return path
+
     cmd = ['ffmpeg', '-i', path]
-    streams_to_keep_in_ffmpeg = all_video_streams + selected_audio
     for stream in streams_to_keep_in_ffmpeg:
         cmd.extend(['-map', f'0:{stream["index"]}'])
 

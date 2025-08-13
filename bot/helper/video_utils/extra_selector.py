@@ -25,8 +25,9 @@ class ExtraSelect:
         self.is_cancel = False
         self.extension: list[str] = [None, None, 'mkv']
         self.status = ''
-        self.executor.streams_kept = []
-        self.executor.streams_removed = []
+        self._listener.streams_kept = []
+        self._listener.streams_removed = []
+        self._listener.art_streams = []
 
     async def auto_select(self, streams):
         from bot import config_dict
