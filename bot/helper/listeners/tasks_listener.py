@@ -151,40 +151,14 @@ class TaskListener(TaskConfig):
              pass
 
         if self.vidMode and self.isLeech:
-            video_files = []
-            if await aiopath.isfile(up_path):
-                if (await get_document_type(up_path))[0]:
-                    video_files.append(up_path)
-            else:
-                for dirpath, _, files in await sync_to_async(walk, up_path):
-                    for file in natsorted(files):
-                        file_path = ospath.join(dirpath, file)
-                        if (await get_document_type(file_path))[0]:
-                            video_files.append(file_path)
-
-            if not video_files:
-                await self.onUploadError("No video files found to process.")
-                return
-
-            for video_file in video_files:
-                processed_path = await process_video(video_file, self)
-                if not processed_path:
-                    LOGGER.error(f"Video processing failed for {video_file}")
-                    continue
-
-                temp_dir = ospath.join(self.dir, 'temp_upload', str(time()))
-                await makedirs(temp_dir, exist_ok=True)
-
-                self.name = ospath.basename(processed_path)
-                await move(processed_path, ospath.join(temp_dir, self.name))
-
-                size = await get_path_size(temp_dir)
-                LOGGER.info(f'Leech Name: {self.name}')
-                tg = TgUploader(self, temp_dir, size)
-                async with task_dict_lock:
-                    task_dict[self.mid] = TelegramStatus(self, tg, size, self.gid, 'up')
-                await gather(update_status_message(self.message.chat.id), tg.upload([], []))
-            return
+            is_video = (await get_document_type(up_path))[0]
+            if is_video:
+                processed_path = await process_video(up_path, self)
+                if processed_path:
+                    up_path = processed_path
+                else:
+                    # process_video returned None, an error occurred and was sent.
+                    return
 
         if not self.compress and not self.extract and not self.vidMode:
             up_path = await self.preName(up_path)
