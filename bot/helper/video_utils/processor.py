@@ -24,12 +24,13 @@ async def process_video(path, listener):
     """
     metadata = await get_metavideo(path)
     if not metadata or not metadata[0]:
-        listener.onUploadError("Failed to get video metadata.")
+        await listener.onUploadError("Failed to get video metadata.")
         return None
 
+    # Set listener.vidMode to the tuple format expected by the executor
+    listener.vidMode = ('rmstream', listener.name, {})
+
     executor = exc.VidEcxecutor(listener, path, listener.gid)
-    # Set the mode to 'rmstream' for the executor
-    executor.mode = 'rmstream'
 
     selector = ExtraSelect(executor)
     await selector.auto_select(metadata[0]) # metadata[0] contains the streams
