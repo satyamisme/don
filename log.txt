@@ -1,0 +1,3 @@
+13-Aug-25 06:50:39 PM: [ERROR: __init__.py - 157] ~ OWNER_ID variable is missing! Exiting now
+13-Aug-25 06:50:52 PM: [WARNING: __init__.py - 316] ~ MEGA Credentials not provided!
+13-Aug-25 06:50:52 PM: [WARNING: __init__.py - 760] ~ PORT is not set or not a valid integer. Skipping gunicorn start.

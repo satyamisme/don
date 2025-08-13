@@ -113,17 +113,18 @@ def _format_stream_details(stream):
 
 def _get_video_stream_info(task):
     """Gets formatted video stream information."""
-    if not task.streams_kept:
+    listener = getattr(task, '_listener', None) or getattr(task, 'listener', None)
+    if not listener or not hasattr(listener, 'streams_kept') or not listener.streams_kept:
         return ""
 
     msg = "\n\n<b>Video Processing Info:</b>"
     msg += "\n<b>Streams Kept:</b>"
-    for stream in task.streams_kept:
+    for stream in listener.streams_kept:
         msg += f"\n{_format_stream_details(stream)}"
 
-    if task.streams_removed:
+    if hasattr(listener, 'streams_removed') and listener.streams_removed:
         msg += "\n\n<b>Streams Removed:</b>"
-        for stream in task.streams_removed:
+        for stream in listener.streams_removed:
             msg += f"\n{_format_stream_details(stream)}"
     return msg
 
@@ -186,7 +187,8 @@ def get_readable_message(sid: int, is_user: bool, page_no: int=1, status : str='
         else:
             msg += (f'\n<b>├ Size:</b> {task.size()}'
                     f'\n<b>├ Elapsed:</b> {task.elapsed() or "~"}')
-        if hasattr(task, '_listener') and hasattr(task._listener, 'streams_kept'):
+        listener = getattr(task, '_listener', None) or getattr(task, 'listener', None)
+        if listener and hasattr(listener, 'streams_kept') and listener.streams_kept:
             msg += _get_video_stream_info(task)
         msg += f'{ext_msg}\n<b>└ </b><code>/{BotCommands.CancelTaskCommand} {task.gid()}</code>\n\n'
 
