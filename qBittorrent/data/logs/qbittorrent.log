@@ -1,0 +1,26 @@
+(N) 2025-08-13T19:42:57 - qBittorrent v4.6.3 started
+(N) 2025-08-13T19:42:57 - Using config directory: /app/qBittorrent/config
+(N) 2025-08-13T19:42:57 - qBittorrent termination initiated
+(N) 2025-08-13T19:42:57 - qBittorrent is now ready to exit
+(N) 2025-08-13T19:42:57 - qBittorrent v4.6.3 started
+(N) 2025-08-13T19:42:57 - Using config directory: /app/qBittorrent/config
+(N) 2025-08-13T19:42:57 - Trying to listen on the following list of IP addresses: "0.0.0.0:1086,[::]:1086"
+(I) 2025-08-13T19:42:57 - Peer ID: "-qB4630-"
+(I) 2025-08-13T19:42:57 - HTTP User-Agent: "qBittorrent/4.6.3"
+(I) 2025-08-13T19:42:57 - Distributed Hash Table (DHT) support: ON
+(I) 2025-08-13T19:42:57 - Local Peer Discovery support: ON
+(I) 2025-08-13T19:42:57 - Peer Exchange (PeX) support: ON
+(I) 2025-08-13T19:42:57 - Anonymous mode: OFF
+(I) 2025-08-13T19:42:57 - Encryption support: ON
+(W) 2025-08-13T19:42:57 - Embedded Tracker: Unable to bind to IP: 0.0.0.0, port: 9000. Reason: The bound address is already in use
+(I) 2025-08-13T19:42:57 - Successfully listening on IP. IP: "127.0.0.1". Port: "TCP/1086"
+(I) 2025-08-13T19:42:57 - Successfully listening on IP. IP: "127.0.0.1". Port: "UTP/1086"
+(I) 2025-08-13T19:42:57 - Successfully listening on IP. IP: "192.168.0.2". Port: "TCP/1086"
+(I) 2025-08-13T19:42:57 - Successfully listening on IP. IP: "192.168.0.2". Port: "UTP/1086"
+(I) 2025-08-13T19:42:57 - UPnP/NAT-PMP support: ON
+(W) 2025-08-13T19:42:57 - Couldn't load IP geolocation database. Reason: No such file or directory
+(N) 2025-08-13T19:42:57 - Using built-in WebUI.
+(W) 2025-08-13T19:42:57 - Couldn't load WebUI translation for selected locale (C).
+(C) 2025-08-13T19:42:57 - WebUI: Unable to bind to IP: *, port: 8090. Reason: The bound address is already in use
+(N) 2025-08-13T19:42:57 - qBittorrent termination initiated
+(N) 2025-08-13T19:43:02 - qBittorrent is now ready to exit

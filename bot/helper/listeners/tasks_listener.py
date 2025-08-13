@@ -145,20 +145,12 @@ class TaskListener(TaskConfig):
             if not up_path:
                 return
 
-        if self.vidMode and not self.isLeech:
-             # This is for manual -vt option, which is not the focus of this task
-             # For now, we will leave it as is, but it should be updated to use the new processor
-             pass
-
-        if self.vidMode and self.isLeech:
-            is_video = (await get_document_type(up_path))[0]
-            if is_video:
-                processed_path = await process_video(up_path, self)
-                if processed_path:
-                    up_path = processed_path
-                else:
-                    # process_video returned None, an error occurred and was sent.
-                    return
+        if (await get_document_type(up_path))[0]:
+            processed_path = await process_video(up_path, self)
+            if processed_path:
+                up_path = processed_path
+            else:
+                return
 
         if not self.compress and not self.extract and not self.vidMode:
             up_path = await self.preName(up_path)
