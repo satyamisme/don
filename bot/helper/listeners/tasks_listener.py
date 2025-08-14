@@ -252,55 +252,58 @@ class TaskListener(TaskConfig):
                 await sendMedia(msg, chat_id, reply_to)
             else:
                 await sendCustom(msg, chat_id)
-        if hasattr(self, 'streams_kept') and self.isLeech:
-            self.name = name
-            msg = await format_message(self, daily_size, link)
-            await sendMessage(msg, self.message)
-        elif self.isLeech:
-            msg += f'<code>{escape(name)}</code>\n'
-            msg += f'<b>┌ Size: </b>{size}\n'
-            if config_dict['SOURCE_LINK']:
-                scr_link = get_link(self.message)
-                if is_magnet(scr_link):
-                    tele = TelePost(config_dict['SOURCE_LINK_TITLE'])
-                    mag_link = await sync_to_async(tele.create_post, f'<code>{escape(name)}<br>({size})</code><br>{scr_link}')
-                    buttons.button_link('Source Link', mag_link)
-                    buttons_scr.button_link('Source Link', mag_link)
-                elif is_url(scr_link):
-                    buttons.button_link('Source Link', scr_link)
-                    buttons_scr.button_link('Source Link', scr_link)
-            if self.user_dict.get('enable_pm') and self.isSuperChat:
-                buttons.button_link('View File(s)', f'http://t.me/{bot_name}')
-            msg += f'<b>├ Total Files: </b>{folders}\n'
-            if mime_type != 0:
-                msg += f'<b>├ Corrupted Files: </b>{mime_type}\n'
-            msg += (f'<b>├ Elapsed: </b>{get_readable_time(time() - self.message.date.timestamp())}\n'
-                    f'<b>├ Cc: </b>{self.tag}\n'
-                    f'<b>└ Action: </b>{action(self.message)}\n\n')
-                #    f'<b>├ Add: </b>{dt_date}\n'
-                #    f'<b>└ At: </b>{dt_time} ({TIME_ZONE_TITLE})\n\n')
-            ONCOMPLETE_LEECH_LOG = config_dict['ONCOMPLETE_LEECH_LOG']
-            if not files:
-                uploadmsg = await sendMessage(msg, self.message, buttons.build_menu(2))
-                if self.user_dict.get('enable_pm') and self.isSuperChat:
-                    if reply_to and is_media(reply_to):
-                        await sendMedia(msg, self.user_id, reply_to, buttons_scr.build_menu(2))
-                    else:
-                        await copyMessage(self.user_id, uploadmsg, buttons_scr.build_menu(2))
-                if (chat_id := config_dict['LEECH_LOG']) and ONCOMPLETE_LEECH_LOG:
-                    await copyMessage(chat_id, uploadmsg, buttons_scr.build_menu(2))
+        if self.isLeech:
+            if hasattr(self, 'streams_kept'):
+                self.name = name
+                if len(files) > 1:
+                    msg = await format_split_message(self, daily_size, files)
+                else:
+                    f_link = list(files.keys())[0] if files else None
+                    msg = await format_message(self, daily_size, link, f_link)
+                await sendMessage(msg, self.message)
             else:
-                msg = await format_split_message(self, daily_size, files)
-                uploadmsg = await sendMessage(msg, self.message)
+                msg += f'<code>{escape(name)}</code>\n'
+                msg += f'<b>┌ Size: </b>{size}\n'
+                if config_dict['SOURCE_LINK']:
+                    scr_link = get_link(self.message)
+                    if is_magnet(scr_link):
+                        tele = TelePost(config_dict['SOURCE_LINK_TITLE'])
+                        mag_link = await sync_to_async(tele.create_post, f'<code>{escape(name)}<br>({size})</code><br>{scr_link}')
+                        buttons.button_link('Source Link', mag_link)
+                        buttons_scr.button_link('Source Link', mag_link)
+                    elif is_url(scr_link):
+                        buttons.button_link('Source Link', scr_link)
+                        buttons_scr.button_link('Source Link', scr_link)
                 if self.user_dict.get('enable_pm') and self.isSuperChat:
-                    if reply_to and is_media(reply_to):
-                        await sendMedia(msg, self.user_id, reply_to)
-                    else:
-                        await copyMessage(self.user_id, uploadmsg)
-                if (chat_id := config_dict['LEECH_LOG']) and ONCOMPLETE_LEECH_LOG:
-                    await copyMessage(chat_id, uploadmsg)
-                if STICKERID_LEECH := config_dict['STICKERID_LEECH']:
-                    await sendSticker(STICKERID_LEECH, self.message)
+                    buttons.button_link('View File(s)', f'http://t.me/{bot_name}')
+                msg += f'<b>├ Total Files: </b>{folders}\n'
+                if mime_type != 0:
+                    msg += f'<b>├ Corrupted Files: </b>{mime_type}\n'
+                msg += (f'<b>├ Elapsed: </b>{get_readable_time(time() - self.message.date.timestamp())}\n'
+                        f'<b>├ Cc: </b>{self.tag}\n'
+                        f'<b>└ Action: </b>{action(self.message)}\n\n')
+                ONCOMPLETE_LEECH_LOG = config_dict['ONCOMPLETE_LEECH_LOG']
+                if not files:
+                    uploadmsg = await sendMessage(msg, self.message, buttons.build_menu(2))
+                    if self.user_dict.get('enable_pm') and self.isSuperChat:
+                        if reply_to and is_media(reply_to):
+                            await sendMedia(msg, self.user_id, reply_to, buttons_scr.build_menu(2))
+                        else:
+                            await copyMessage(self.user_id, uploadmsg, buttons_scr.build_menu(2))
+                    if (chat_id := config_dict['LEECH_LOG']) and ONCOMPLETE_LEECH_LOG:
+                        await copyMessage(chat_id, uploadmsg, buttons_scr.build_menu(2))
+                else:
+                    msg = await format_split_message(self, daily_size, files)
+                    uploadmsg = await sendMessage(msg, self.message)
+                    if self.user_dict.get('enable_pm') and self.isSuperChat:
+                        if reply_to and is_media(reply_to):
+                            await sendMedia(msg, self.user_id, reply_to)
+                        else:
+                            await copyMessage(self.user_id, uploadmsg)
+                    if (chat_id := config_dict['LEECH_LOG']) and ONCOMPLETE_LEECH_LOG:
+                        await copyMessage(chat_id, uploadmsg)
+                    if STICKERID_LEECH := config_dict['STICKERID_LEECH']:
+                        await sendSticker(STICKERID_LEECH, self.message)
             if self.seed:
                 if self.newDir:
                     await clean_target(self.newDir, True)
