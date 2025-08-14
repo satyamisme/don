@@ -105,8 +105,9 @@ async def process_video(path, listener):
     main_video_streams = [s for s in all_video_streams if not s.get('disposition', {}).get('attached_pic')]
 
     lang_string = config_dict.get('PREFERRED_LANGUAGES', 'tel,hin,eng')
-    preferred_langs = [lang.strip().strip('"\'') for lang in lang_string.split(',')]
-    LOGGER.info("Using language priority: %s", preferred_langs)
+    raw_preferred_langs = [lang.strip().strip('"\'') for lang in lang_string.split(',')]
+    preferred_langs = [lang_map.get(lang, lang) for lang in raw_preferred_langs]
+    LOGGER.info("Using normalized language priority: %s", preferred_langs)
 
     selected_audio = []
     found_preferred = False
