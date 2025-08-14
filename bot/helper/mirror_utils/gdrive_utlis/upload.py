@@ -82,7 +82,7 @@ class gdUpload(GoogleDriveHelper):
                 return
             if self._is_errored:
                 return
-            async_to_sync(self.listener.onUploadComplete, link, size, self.total_files, self.total_folders, mime_type, dir_id=self.getIdFromUrl(link, self.listener.user_id))
+            async_to_sync(self.listener.onUploadComplete, self.listener.name, link, size, self.total_files, self.total_folders, mime_type, dir_id=self.getIdFromUrl(link, self.listener.user_id))
 
     def _upload_dir(self, input_directory, dest_id):
         list_dirs = listdir(input_directory)

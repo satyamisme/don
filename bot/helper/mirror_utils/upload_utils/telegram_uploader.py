@@ -136,7 +136,7 @@ class TgUploader:
             await self._listener.onUploadError('Files Corrupted or unable to upload. Check logs!')
             return
         LOGGER.info('Leech Completed: %s', self._listener.name)
-        await self._listener.onUploadComplete(None, self._size, self._msgs_dict, total_files, corrupted_files)
+        await self._listener.onUploadComplete(self._listener.name, None, self._size, self._msgs_dict, total_files, corrupted_files)
 
     @retry(wait=wait_exponential(multiplier=2, min=4, max=8), stop=stop_after_attempt(4), retry=retry_if_exception_type(Exception))
     async def _upload_file(self, caption, file, force_document=False):
