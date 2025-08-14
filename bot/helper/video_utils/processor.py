@@ -58,6 +58,7 @@ async def run_ffmpeg(command, path, listener):
 
 async def process_video(path, listener):
     """Main function to process the video based on user's final logic."""
+    LOGGER.info("Starting video processing for: %s", path)
 
     if hasattr(listener, 'streams_kept') and listener.streams_kept:
         LOGGER.info("Streams already processed by manual selection, skipping automatic processing.")
@@ -70,17 +71,22 @@ async def process_video(path, listener):
         return None
 
     all_streams = media_info['streams']
+    LOGGER.info("Found %d streams in the media file.", len(all_streams))
 
-    # Language mapping
     lang_map = {
         'te': 'tel', 'tel': 'tel', 'telugu': 'tel', 'తెలుగు': 'tel',
         'hi': 'hin', 'hin': 'hin', 'hindi': 'hin', 'हिंदी': 'hin',
-        'en': 'eng', 'eng': 'eng', 'english': 'eng',
+        'en': 'eng', 'eng': 'eng', 'english': 'eng', 'ఇంగ్లీష్': 'eng',
+        'ta': 'tam', 'tam': 'tam', 'tamil': 'tam', 'தமிழ்': 'tam',
+        'ml': 'mal', 'mal': 'mal', 'malayalam': 'mal', 'മലയാളം': 'mal',
+        'kn': 'kan', 'kan': 'kan', 'kannada': 'kan', 'ಕನ್ನಡ': 'kan',
+        'ur': 'urd', 'urd': 'urd', 'urdu': 'urd', 'اردو': 'urd',
+        'bn': 'ben', 'ben': 'ben', 'bengali': 'ben', 'বাংলা': 'ben',
     }
 
     def get_lang_code(stream):
         tags = stream.get('tags', {})
-        lang = tags.get('language', '').lower()
+        lang = tags.get('language', 'und').lower()
         title = tags.get('title', '').lower()
 
         if lang in lang_map:
@@ -88,6 +94,7 @@ async def process_video(path, listener):
 
         for key, value in lang_map.items():
             if key in title:
+                LOGGER.info("Found language '%s' from title '%s' for stream %d", value, title, stream.get('index'))
                 return value
         return lang
 
@@ -99,6 +106,7 @@ async def process_video(path, listener):
 
     lang_string = config_dict.get('PREFERRED_LANGUAGES', 'tel,hin,eng')
     preferred_langs = [lang.strip().strip('"\'') for lang in lang_string.split(',')]
+    LOGGER.info("Using language priority: %s", preferred_langs)
 
     selected_audio = []
     found_preferred = False
@@ -108,44 +116,48 @@ async def process_video(path, listener):
         if lang_streams:
             selected_audio.extend(lang_streams)
             found_preferred = True
+            LOGGER.info("Found priority language '%s'. Selecting %d audio stream(s).", pref_lang, len(lang_streams))
             break
 
     if not found_preferred:
+        LOGGER.info("No priority audio language found, keeping all %d audio tracks.", len(audio_streams_to_process))
         selected_audio = audio_streams_to_process
 
     streams_to_keep_in_ffmpeg = main_video_streams + art_streams + selected_audio
+    LOGGER.info("Total streams to keep (before subtitle check): %d", len(streams_to_keep_in_ffmpeg))
 
-    subtitle_streams = [s for s in all_streams if s.get('codec_type') == 'subtitle']
-    if len(streams_to_keep_in_ffmpeg) == len(all_streams) - len(subtitle_streams):
+    if len(streams_to_keep_in_ffmpeg) == len(all_streams):
          LOGGER.info("No streams to remove, skipping processing.")
          listener.streams_kept = main_video_streams + selected_audio
-         listener.streams_removed = subtitle_streams
+         listener.streams_removed = [s for s in all_streams if s.get('codec_type') == 'subtitle']
          listener.art_streams = art_streams
          return path
 
-    cmd = ['ffmpeg', '-i', path]
+    cmd = ['ffmpeg', '-i', path, '-v', 'error']
     for stream in streams_to_keep_in_ffmpeg:
         cmd.extend(['-map', f'0:{stream["index"]}'])
 
-    cmd.extend(['-c', 'copy'])
-    cmd.extend(['-avoid_negative_ts', 'make_zero', '-fflags', '+genpts'])
-    cmd.extend(['-max_interleave_delta', '0'])
+    cmd.extend(['-c', 'copy', '-avoid_negative_ts', 'make_zero', '-fflags', '+genpts', '-max_interleave_delta', '0'])
 
     base_name, _ = path.rsplit('.', 1)
     output_path = f"{base_name}.processed.mkv"
     cmd.extend(['-f', 'matroska', '-y', output_path])
 
+    LOGGER.info("Running ffmpeg command: %s", " ".join(cmd))
     processed_path = await run_ffmpeg(cmd, path, listener)
 
     if processed_path:
         final_path = processed_path.replace('.processed.mkv', '.mkv')
         await aiorename(processed_path, final_path)
+        LOGGER.info("Video processing successful. Output: %s", final_path)
 
         listener.streams_kept = main_video_streams + selected_audio
         listener.art_streams = art_streams
 
         kept_indices = {s['index'] for s in listener.streams_kept + listener.art_streams}
         listener.streams_removed = [s for s in all_streams if s['index'] not in kept_indices]
+
+        LOGGER.info("Final decision: Kept %d streams, Removed %d streams.", len(listener.streams_kept), len(listener.streams_removed))
 
         return final_path
 
