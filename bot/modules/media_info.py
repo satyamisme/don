@@ -11,7 +11,7 @@ from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.helper.telegram_helper.message_utils import sendMessage, sendPhoto, editPhoto, copyMessage, deleteMessage
-from bot.helper.video_utils.executor import get_metavideo
+from bot.helper.ext_utils.media_utils import get_metavideo
 @new_task
 async def medinfo(_, message: Message):
     link, media, cmsg = get_link(message), None, None
