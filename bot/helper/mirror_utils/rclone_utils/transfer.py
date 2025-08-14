@@ -246,7 +246,7 @@ class RcloneTransferHelper:
         if self._is_cancelled:
             return
         LOGGER.info('Upload Done. Path: %s', destination)
-        await self._listener.onUploadComplete(link, size, files, folders, mime_type, destination)
+        await self._listener.onUploadComplete(self._listener.name, link, size, files, folders, mime_type, destination)
 
     async def clone(self, config_path, src_remote, src_path, mime_type, drive_id):
         destination = self._listener.upDest

@@ -213,12 +213,12 @@ class TaskListener(TaskConfig):
                 task_dict[self.mid] = RcloneStatus(self, RCTransfer, gid, 'up')
             await gather(update_status_message(self.message.chat.id), RCTransfer.upload(up_path, size))
 
-    async def onUploadComplete(self, link, size, files, folders, mime_type, rclonePath='', dir_id=''):
+    async def onUploadComplete(self, name, link, size, files, folders, mime_type, rclonePath='', dir_id=''):
         msg = ''
         if self.isSuperChat and config_dict['INCOMPLETE_TASK_NOTIFIER'] and DATABASE_URL:
             await DbManager().rm_complete_task(self.message.link)
 
-        LOGGER.info('Task Done: %s', self.name)
+        LOGGER.info('Task Done: %s', name)
         dt_date, dt_time = get_date_time(self.message)
         buttons = ButtonMaker()
         buttons_scr = ButtonMaker()
@@ -228,7 +228,7 @@ class TaskListener(TaskConfig):
         TIME_ZONE_TITLE = config_dict['TIME_ZONE_TITLE']
         if (chat_id := config_dict['LINK_LOG']) and self.isSuperChat:
             msg = ('<b>LINK LOGS</b>\n'
-                   f'<code>{escape(self.name)}</code>\n'
+                   f'<code>{escape(name)}</code>\n'
                    f'<b>┌ Cc: </b>{self.tag}\n'
                    f'<b>├ ID: </b><code>{self.user_id}</code>\n'
                    f'<b>├ Size: </b>{size}\n'
@@ -253,16 +253,16 @@ class TaskListener(TaskConfig):
             else:
                 await sendCustom(msg, chat_id)
         if hasattr(self, 'streams_kept') and self.isLeech:
-            msg = await format_message(self, daily_size, link)
+            msg = await format_message(self, name, daily_size, link)
             await sendMessage(msg, self.message)
         elif self.isLeech:
-            msg += f'<code>{escape(self.name)}</code>\n'
+            msg += f'<code>{escape(name)}</code>\n'
             msg += f'<b>┌ Size: </b>{size}\n'
             if config_dict['SOURCE_LINK']:
                 scr_link = get_link(self.message)
                 if is_magnet(scr_link):
                     tele = TelePost(config_dict['SOURCE_LINK_TITLE'])
-                    mag_link = await sync_to_async(tele.create_post, f'<code>{escape(self.name)}<br>({size})</code><br>{scr_link}')
+                    mag_link = await sync_to_async(tele.create_post, f'<code>{escape(name)}<br>({size})</code><br>{scr_link}')
                     buttons.button_link('Source Link', mag_link)
                     buttons_scr.button_link('Source Link', mag_link)
                 elif is_url(scr_link):
@@ -348,7 +348,7 @@ class TaskListener(TaskConfig):
                         INDEX_URL = config_dict['INDEX_URL']
 
                     if INDEX_URL:
-                        url_path = rutils.quote(self.name)
+                        url_path = rutils.quote(name)
                         share_url = f'{INDEX_URL}/{url_path}'
                         if mime_type == 'Folder':
                             share_url = await sync_to_async(short_url, f'{share_url}/', self.user_id)
@@ -371,7 +371,7 @@ class TaskListener(TaskConfig):
                 scr_link = get_link(self.message)
                 if is_magnet(scr_link):
                     tele = TelePost(config_dict['SOURCE_LINK_TITLE'])
-                    mag_link = await sync_to_async(tele.create_post, f'<code>{escape(self.name)}<br>({size})</code><br>{scr_link}')
+                    mag_link = await sync_to_async(tele.create_post, f'<code>{escape(name)}<br>({size})</code><br>{scr_link}')
                     buttons.button_link('Source Link', mag_link)
                 elif is_url(scr_link):
                     buttons.button_link('Source Link', scr_link)
@@ -434,13 +434,14 @@ class TaskListener(TaskConfig):
 
         if not isinstance(error, str):
             error = str(error)
+        name = self.name
         reply_to = self.message.reply_to_message
         dt_date, dt_time = get_date_time(self.message)
         TIME_ZONE_TITLE = config_dict['TIME_ZONE_TITLE']
         if (chat_id := config_dict['LINK_LOG']) and self.isSuperChat:
             msg = '<b>LINK LOGS</b>\n'
-            if self.name:
-                msg += f'<code>{self.name}</code>\n'
+            if name:
+                msg += f'<code>{name}</code>\n'
             msg += (f'<b>┌ Cc: </b>{self.tag}\n'
                     f'<b>├ ID: </b><code>{self.user_id}</code>\n'
                     f'<b>├ Elapsed: </b>{get_readable_time(time() - self.message.date.timestamp())}\n'
@@ -460,8 +461,8 @@ class TaskListener(TaskConfig):
         else:
             err_msg = escape(error)
         msg = f'<b>{"Clone" if self.isClone else "Download"} Has Been Stopped!</b>\n'
-        if self.name:
-            msg += f'<code>{self.name}</code>\n'
+        if name:
+            msg += f'<code>{name}</code>\n'
         msg += (f'<b>┌ Elapsed: </b>{get_readable_time(time() - self.message.date.timestamp())}\n'
                 f'<b>├ Cc:</b> {self.tag}\n'
                 f'<b>├ Action: </b>{action(self.message)}\n'
@@ -506,14 +507,15 @@ class TaskListener(TaskConfig):
 
         if not isinstance(error, str):
             error = str(error)
+        name = self.name
         buttons = ButtonMaker()
         dt_date, dt_time = get_date_time(self.message)
         reply_to = self.message.reply_to_message
         TIME_ZONE_TITLE = config_dict['TIME_ZONE_TITLE']
         if (chat_id := config_dict['LINK_LOG']) and self.isSuperChat:
             msg = '<b>LINK LOGS</b>\n'
-            if self.name:
-                msg += f'<code>{self.name}</code>\n'
+            if name:
+                msg += f'<code>{name}</code>\n'
             msg += (f'<b>┌ Cc: </b>{self.tag}\n'
                     f'<b>├ ID: </b><code>{self.user_id}</code>\n'
                     f'<b>├ Elapsed: </b>{get_readable_time(time() - self.message.date.timestamp())}\n'
@@ -533,8 +535,8 @@ class TaskListener(TaskConfig):
         else:
             err_msg = escape(error)
         msg = f'<b>{"Clone" if self.isClone else "Upload"} Has Been Stopped!</b>\n'
-        if self.name:
-            msg += f'<code>{self.name}</code>\n'
+        if name:
+            msg += f'<code>{name}</code>\n'
         msg += (f'<b>┌ Elapsed: </b>{get_readable_time(time() - self.message.date.timestamp())}\n'
                 f'<b>├ Cc:</b> {self.tag}\n'
                 f'<b>├ Action: </b>{action(self.message)}\n'
