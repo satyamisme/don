@@ -163,7 +163,7 @@ class TaskListener(TaskConfig):
         size = await get_path_size(up_dir)
         if self.isLeech:
             o_files, m_size = [], []
-            if not self.compress and not self.vidMode:
+            if not self.compress:
                 result = await self.proceedSplit(up_dir, m_size, o_files, size, gid)
                 if not result:
                     return
