@@ -253,7 +253,8 @@ class TaskListener(TaskConfig):
             else:
                 await sendCustom(msg, chat_id)
         if hasattr(self, 'streams_kept') and self.isLeech:
-            msg = await format_message(self, name, daily_size, link)
+            self.name = name
+            msg = await format_message(self, daily_size, link)
             await sendMessage(msg, self.message)
         elif self.isLeech:
             msg += f'<code>{escape(name)}</code>\n'
