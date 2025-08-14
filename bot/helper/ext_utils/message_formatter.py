@@ -56,7 +56,7 @@ def _format_art_stream(stream):
     title = stream.get('tags', {}).get('title', '')
     return f"Art: {codec.upper()}, {resolution}, {title}"
 
-async def format_message(listener, size, link=None):
+async def format_message(listener, size, link=None, f_link=None):
     """
     Formats the final completion message based on the approved UI.
     """
@@ -69,10 +69,16 @@ async def format_message(listener, size, link=None):
     new_name = listener.name
     original_name = getattr(listener, 'original_name', None)
 
-    if original_name and original_name != new_name:
-        msg.append(f"📽️ `{original_name}` → `{new_name}`")
+    if f_link:
+        if original_name and original_name != new_name:
+            msg.append(f"📽️ [`{original_name}`]({f_link}) → [`{new_name}`]({f_link})")
+        else:
+            msg.append(f"📽️ [`{new_name}`]({f_link})")
     else:
-        msg.append(f"📽️ `{new_name}`")
+        if original_name and original_name != new_name:
+            msg.append(f"📽️ `{original_name}` → `{new_name}`")
+        else:
+            msg.append(f"📽️ `{new_name}`")
 
     elapsed = get_readable_time(time() - listener.message.date.timestamp())
     date = datetime.now().strftime('%d %b %Y')
@@ -144,7 +150,11 @@ async def format_split_message(listener, size, files):
     total_size = get_readable_file_size(size)
     parts = len(files)
 
-    msg.append(f"**Original Name:** `{name}`")
+    first_link = list(files.keys())[0] if files else None
+    if first_link:
+        msg.append(f"**Original Name:** [`{name}`]({first_link})")
+    else:
+        msg.append(f"**Original Name:** `{name}`")
     msg.append(f"**Total Size:** {total_size}")
     msg.append(f"**Parts:** {parts}")
 
